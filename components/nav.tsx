@@ -9,6 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from "@/components/ui/sidebar"
 
 const links = [
@@ -46,6 +47,14 @@ const links = [
 
 export function Nav() {
   const pathname = usePathname()
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  const handleLinkClick = () => {
+    // Close mobile sidebar when a link is clicked
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+  }
 
   return (
     <SidebarMenu>
@@ -56,7 +65,7 @@ export function Nav() {
             isActive={pathname.startsWith(link.href)}
             tooltip={link.label}
           >
-            <Link href={link.href}>
+            <Link href={link.href} onClick={handleLinkClick}>
               <link.icon />
               <span>{link.label}</span>
             </Link>

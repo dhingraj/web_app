@@ -1,0 +1,22 @@
+{
+  "placeholderImages": [
+    {
+      "id": "dashboard-motor-health",
+      "description": "A chart showing motor health metrics.",
+      "imageUrl": "https://images.unsplash.com/photo-1739055548068-da20348066d2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxlbmdpbmUlMjBjaGFydHxlbnwwfHx8fDE3NTg5MTcyOTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "engine chart"
+    },
+    {
+      "id": "dashboard-device-health",
+      "description": "A dashboard displaying device health statuses.",
+      "imageUrl": "https://images.unsplash.com/photo-1515630278258-407f66498911?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjaXJjdWl0JTIwYm9hcmR8ZW58MHx8fHwxNzU4ODkwNTI3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "circuit board"
+    },
+    {
+      "id": "dashboard-fleet-metrics",
+      "description": "A map and charts showing fleet metrics.",
+      "imageUrl": "https://images.unsplash.com/photo-1584826234958-707f466b6e9d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx0cnVjayUyMG1hcHxlbnwwfHx8fDE3NTg5MTcyOTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "truck map"
+    }
+  ]
+}

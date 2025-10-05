@@ -119,8 +119,8 @@ export default function AnalyticsPage() {
   React.useEffect(() => {
     fetchLiveData();
     
-    // Poll every 30 seconds for live updates
-    const interval = setInterval(fetchLiveData, 30000);
+    // Poll every 15 minutes for live updates
+    const interval = setInterval(fetchLiveData, 900000);
     
     return () => clearInterval(interval);
   }, []);

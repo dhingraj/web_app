@@ -3,8 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Falcon Analytics",
-  description: "Falcon Analytics: Quicksight Dashboards, Alerting, and Ticket Management",
+  title: "HalconX Analytics",
+  description: "HalconX Analytics: Quicksight Dashboards, Alerting, and Ticket Management",
 };
 
 export default function RootLayout({

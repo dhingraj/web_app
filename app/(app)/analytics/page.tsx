@@ -77,6 +77,91 @@ export default function AnalyticsPage() {
   const [view, setView] = useState<"dashboard" | "report">("dashboard");
   const [selectedAxes, setSelectedAxes] = useState<{vx: boolean, vy: boolean, vz: boolean}>({vx: true, vy: true, vz: true});
   const [dateFilter, setDateFilter] = useState<string>("24h");
+  const [liveData, setLiveData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Fetch live data via Next.js API route (bypasses CORS)
+  const fetchLiveData = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching sensor data via Next.js API...');
+      
+      const response = await fetch('/api/test-connection');
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('API response:', result);
+      
+      if (result.success && result.data.statusCode === 200) {
+        const data = JSON.parse(result.data.body);
+        console.log('Parsed data:', data);
+        setLiveData(data);
+        setLastUpdated(new Date());
+        setError(null);
+      } else {
+        throw new Error(result.error || 'Failed to fetch data');
+      }
+    } catch (err) {
+      console.error('Full error details:', err);
+      setError(`Failed to load live data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch data on component mount and set up polling
+  React.useEffect(() => {
+    fetchLiveData();
+    
+    // Poll every 30 seconds for live updates
+    const interval = setInterval(fetchLiveData, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Process live data for charts
+  const processedData = React.useMemo(() => {
+    if (!liveData.length) return { temperatureData: [], humidityData: [], pressureData: [] };
+    
+    return {
+      temperatureData: liveData
+        .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
+        .slice(-20) // Get last 20 readings
+        .map(item => ({
+          time: new Date(item.ts).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          temperature: item.temp
+        })),
+      humidityData: liveData
+        .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
+        .slice(-20)
+        .map(item => ({
+          time: new Date(item.ts).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          humidity: item.humidity
+        })),
+      pressureData: liveData
+        .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
+        .slice(-20)
+        .map(item => ({
+          time: new Date(item.ts).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          pressure: item.pressure
+        }))
+    };
+  }, [liveData]);
 
   return (
     <div className="flex flex-col h-full">
@@ -130,6 +215,14 @@ export default function AnalyticsPage() {
                       <SelectItem value="30d">Last 30 Days</SelectItem>
                     </SelectContent>
                   </Select>
+                  {lastUpdated && (
+                    <div className="text-xs text-muted-foreground">
+                      Last updated: {lastUpdated.toLocaleTimeString()}
+                    </div>
+                  )}
+                  <Button variant="outline" onClick={fetchLiveData} disabled={loading}>
+                    {loading ? 'Loading...' : 'Refresh Data'}
+                  </Button>
                   <Button variant="outline" onClick={() => setView(view === 'dashboard' ? 'report' : 'dashboard')}>
                     {view === 'dashboard' ? <Eye className="mr-2 h-4 w-4" /> : <LayoutDashboard className="mr-2 h-4 w-4" />}
                     {view === 'dashboard' ? 'View Report' : 'View Dashboard'}
@@ -214,19 +307,29 @@ export default function AnalyticsPage() {
                                     <CardTitle>Temperature Monitoring</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <ResponsiveContainer width="100%" height={250}>
-                                        <LineChart data={temperatureData}>
-                                            <XAxis 
-                                                dataKey="time" 
-                                                label={{ value: 'Time', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
-                                            />
-                                            <YAxis 
-                                                label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
-                                            />
-                                            <Tooltip />
-                                            <Line type="monotone" dataKey="temperature" stroke="#ef4444" strokeWidth={2} name="Temperature (°C)" />
-                                        </LineChart>
-                                    </ResponsiveContainer>
+                                    {loading ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-muted-foreground">Loading live data...</div>
+                                        </div>
+                                    ) : error ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-red-500">{error}</div>
+                                        </div>
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <LineChart data={processedData.temperatureData}>
+                                                <XAxis 
+                                                    dataKey="time" 
+                                                    label={{ value: 'Time', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
+                                                />
+                                                <YAxis 
+                                                    label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+                                                />
+                                                <Tooltip />
+                                                <Line type="monotone" dataKey="temperature" stroke="#ef4444" strokeWidth={2} name="Temperature (°C)" />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    )}
                                 </CardContent>
                             </Card>
 
@@ -259,19 +362,29 @@ export default function AnalyticsPage() {
                                     <CardTitle>Pressure Monitoring</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <ResponsiveContainer width="100%" height={250}>
-                                        <LineChart data={pressureData}>
-                                            <XAxis 
-                                                dataKey="time" 
-                                                label={{ value: 'Time', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
-                                            />
-                                            <YAxis 
-                                                label={{ value: 'Pressure (hPa)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
-                                            />
-                                            <Tooltip />
-                                            <Line type="monotone" dataKey="pressure" stroke="#10b981" strokeWidth={2} name="Pressure (hPa)" />
-                                        </LineChart>
-                                    </ResponsiveContainer>
+                                    {loading ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-muted-foreground">Loading live data...</div>
+                                        </div>
+                                    ) : error ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-red-500">{error}</div>
+                                        </div>
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <LineChart data={processedData.pressureData}>
+                                                <XAxis 
+                                                    dataKey="time" 
+                                                    label={{ value: 'Time', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
+                                                />
+                                                <YAxis 
+                                                    label={{ value: 'Pressure (hPa)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+                                                />
+                                                <Tooltip />
+                                                <Line type="monotone" dataKey="pressure" stroke="#10b981" strokeWidth={2} name="Pressure (hPa)" />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    )}
                                 </CardContent>
                             </Card>
 
@@ -280,19 +393,29 @@ export default function AnalyticsPage() {
                                     <CardTitle>Humidity Analysis</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <ResponsiveContainer width="100%" height={250}>
-                                        <LineChart data={humidityData}>
-                                            <XAxis 
-                                                dataKey="time" 
-                                                label={{ value: 'Time', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
-                                            />
-                                            <YAxis 
-                                                label={{ value: 'Humidity (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
-                                            />
-                                            <Tooltip />
-                                            <Line type="monotone" dataKey="humidity" stroke="#f59e0b" strokeWidth={2} name="Humidity (%)" />
-                                        </LineChart>
-                                    </ResponsiveContainer>
+                                    {loading ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-muted-foreground">Loading live data...</div>
+                                        </div>
+                                    ) : error ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-red-500">{error}</div>
+                                        </div>
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <LineChart data={processedData.humidityData}>
+                                                <XAxis 
+                                                    dataKey="time" 
+                                                    label={{ value: 'Time', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
+                                                />
+                                                <YAxis 
+                                                    label={{ value: 'Humidity (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+                                                />
+                                                <Tooltip />
+                                                <Line type="monotone" dataKey="humidity" stroke="#f59e0b" strokeWidth={2} name="Humidity (%)" />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>

@@ -198,16 +198,25 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden mobile-sidebar"
+            className="w-[--sidebar-width] p-0 text-sidebar-foreground [&>button]:hidden"
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-                backgroundColor: "hsl(var(--sidebar))",
+                backgroundColor: "#ffffff",
+                opacity: 1,
               } as React.CSSProperties
             }
             side={side}
           >
-            <div className="flex h-full w-full flex-col bg-sidebar">{children}</div>
+            <div 
+              className="flex h-full w-full flex-col"
+              style={{
+                backgroundColor: "#ffffff",
+                opacity: 1,
+              }}
+            >
+              {children}
+            </div>
           </SheetContent>
         </Sheet>
       )

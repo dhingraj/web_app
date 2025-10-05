@@ -87,7 +87,31 @@
 
 @layer components {
   .mobile-sidebar {
-    background-color: hsl(var(--sidebar)) !important;
+    background-color: #ffffff !important;
+    opacity: 1 !important;
+  }
+  
+  /* Force solid background for mobile sidebar */
+  [data-mobile="true"] {
+    background-color: #ffffff !important;
+    opacity: 1 !important;
+  }
+  
+  [data-mobile="true"] > div {
+    background-color: #ffffff !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Override any Radix UI transparency */
+@layer utilities {
+  [data-radix-dialog-content][data-mobile="true"] {
+    background-color: #ffffff !important;
+    opacity: 1 !important;
+  }
+  
+  [data-radix-dialog-content][data-mobile="true"] > div {
+    background-color: #ffffff !important;
     opacity: 1 !important;
   }
 }

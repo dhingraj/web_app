@@ -14,17 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { useAssetData } from "@/lib/contexts/AssetContext";
-
-type AssetStatus = "Healthy" | "Warning" | "Critical" | "Offline";
-
-type AssetData = {
-  subplant: string;
-  asset_id: string;
-  node_id: string;
-  asset_status: AssetStatus;
-  node_status: AssetStatus;
-};
+import { useAssetData, type AssetData, type AssetStatus } from "@/lib/contexts/AssetContext";
 
 type Asset = {
   id: string;

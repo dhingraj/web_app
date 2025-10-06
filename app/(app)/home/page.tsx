@@ -2,22 +2,13 @@
 
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Activity, AlertTriangle, CheckCircle, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { kpiData } from "@/lib/data";
-import { useAssetData } from "@/lib/contexts/AssetContext";
-
-type AssetStatus = "Healthy" | "Warning" | "Critical" | "Offline";
-
-type AssetData = {
-  subplant: string;
-  asset_id: string;
-  node_id: string;
-  asset_status: AssetStatus;
-  node_status: AssetStatus;
-};
+import { useAssetData, type AssetData, type AssetStatus } from "@/lib/contexts/AssetContext";
 
 type SubplantSummary = {
   subplant: string;

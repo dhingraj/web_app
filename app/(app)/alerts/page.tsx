@@ -32,15 +32,7 @@ import {
 import { alerts as initialAlerts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import type { Alert } from "@/lib/types";
-import { useAssetData } from "@/lib/contexts/AssetContext";
-
-type AssetData = {
-  subplant: string;
-  asset_id: string;
-  node_id: string;
-  asset_status: string;
-  node_status: string;
-};
+import { useAssetData, type AssetData } from "@/lib/contexts/AssetContext";
 
 function SeverityBadge({ severity }: { severity: Alert["severity"] }) {
   return (

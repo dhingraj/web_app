@@ -10,16 +10,8 @@ import { Eye, Download, LayoutDashboard, Siren } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Label } from 'recharts';
-import { useAssetData } from "@/lib/contexts/AssetContext";
+import { useAssetData, type AssetData } from "@/lib/contexts/AssetContext";
 import { useSensorData } from "@/lib/contexts/SensorDataContext";
-
-type AssetData = {
-  subplant: string;
-  asset_id: string;
-  node_id: string;
-  asset_status: string;
-  node_status: string;
-};
 
 
 

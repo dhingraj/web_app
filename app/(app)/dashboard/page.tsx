@@ -4,15 +4,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Activity, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, WifiOff } from "lucide-react";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useAssetData } from "@/lib/contexts/AssetContext";
-
-type AssetData = {
-  subplant: string;
-  asset_id: string;
-  node_id: string;
-  asset_status: string;
-  node_status: string;
-};
+import { useAssetData, type AssetData } from "@/lib/contexts/AssetContext";
 
 // Mock data for charts
 const devicePerformanceData = [

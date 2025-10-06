@@ -2,12 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type AssetData = {
+export type AssetStatus = "Healthy" | "Warning" | "Critical" | "Offline";
+
+export type AssetData = {
   subplant: string;
   asset_id: string;
   node_id: string;
-  asset_status: string;
-  node_status: string;
+  asset_status: AssetStatus;
+  node_status: AssetStatus;
 };
 
 type AssetContextType = {

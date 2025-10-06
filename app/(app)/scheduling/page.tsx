@@ -6,14 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
 import { PlusCircle } from "lucide-react"
 
 type ScheduledEvent = {
@@ -63,19 +55,6 @@ export default function SchedulingPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="flex items-center gap-4 p-4 sm:p-6 border-b">
-        <Breadcrumb className="hidden md:flex">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/home">Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Scheduling</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
       <main className="flex-1 p-4 sm:p-6 lg:p-8">
         <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-[2fr_1fr] items-start">
           <div>

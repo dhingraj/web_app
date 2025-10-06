@@ -8,21 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Eye, Download, LayoutDashboard } from "lucide-react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Label } from 'recharts';
 
 const subplants = [
   "Bravo Bay", "Hotel Sector", "Charlie Works",
   "Alpha Station", "Delta Point", "India Complex",
   "Foxtrot Factory", "Echo Yard", "Gamma Plant"
 ];
+
+
 
 // Mock data for charts
 const frequencySpectrumData = [
@@ -76,11 +70,9 @@ export default function AnalyticsPage() {
   const [deviceIdFilter, setDeviceIdFilter] = useState<string>("");
   const [view, setView] = useState<"dashboard" | "report">("dashboard");
   const [selectedAxes, setSelectedAxes] = useState<{vx: boolean, vy: boolean, vz: boolean}>({vx: true, vy: true, vz: true});
-  const [dateFilter, setDateFilter] = useState<string>("24h");
   const [liveData, setLiveData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Fetch live data via Next.js API route (bypasses CORS)
   const fetchLiveData = async () => {
@@ -102,7 +94,6 @@ export default function AnalyticsPage() {
         const data = JSON.parse(result.data.body);
         console.log('Parsed data:', data);
         setLiveData(data);
-        setLastUpdated(new Date());
         setError(null);
       } else {
         throw new Error(result.error || 'Failed to fetch data');
@@ -129,56 +120,45 @@ export default function AnalyticsPage() {
   const processedData = React.useMemo(() => {
     if (!liveData.length) return { temperatureData: [], humidityData: [], pressureData: [] };
     
+    // Sort by timestamp and take the last 20 readings
+    const sortedData = liveData
+      .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
+      .slice(-20);
+    
+    const temperatureData = sortedData.map(item => ({
+      time: new Date(item.ts).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+      temperature: item.temp
+    }));
+    
+    const humidityData = sortedData.map(item => ({
+      time: new Date(item.ts).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+      humidity: item.humidity
+    }));
+    
+    const pressureData = sortedData.map(item => ({
+      time: new Date(item.ts).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+      pressure: item.pressure
+    }));
+    
     return {
-      temperatureData: liveData
-        .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
-        .slice(-20) // Get last 20 readings
-        .map(item => ({
-          time: new Date(item.ts).toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          temperature: item.temp
-        })),
-      humidityData: liveData
-        .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
-        .slice(-20)
-        .map(item => ({
-          time: new Date(item.ts).toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          humidity: item.humidity
-        })),
-      pressureData: liveData
-        .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
-        .slice(-20)
-        .map(item => ({
-          time: new Date(item.ts).toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          pressure: item.pressure
-        }))
+      temperatureData,
+      humidityData,
+      pressureData
     };
   }, [liveData]);
 
   return (
     <div className="flex flex-col h-full">
-       <header className="flex items-center gap-4 p-4 sm:p-6 border-b">
-         <Breadcrumb className="hidden md:flex">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/home">Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Analytics & Reports</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
-      <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 space-y-8">
+       <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 space-y-8">
         
         <Card>
             <CardContent className="pt-6 flex flex-col md:flex-row items-center gap-4">
@@ -203,23 +183,6 @@ export default function AnalyticsPage() {
                 />
                 </div>
                 <div className="flex items-center gap-2">
-                  <Select value={dateFilter} onValueChange={setDateFilter}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Time Range" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1h">Last 1 Hour</SelectItem>
-                      <SelectItem value="6h">Last 6 Hours</SelectItem>
-                      <SelectItem value="24h">Last 24 Hours</SelectItem>
-                      <SelectItem value="7d">Last 7 Days</SelectItem>
-                      <SelectItem value="30d">Last 30 Days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {lastUpdated && (
-                    <div className="text-xs text-muted-foreground">
-                      Last updated: {lastUpdated.toLocaleTimeString()}
-                    </div>
-                  )}
                   <Button variant="outline" onClick={fetchLiveData} disabled={loading}>
                     {loading ? 'Loading...' : 'Refresh Data'}
                   </Button>
@@ -238,7 +201,7 @@ export default function AnalyticsPage() {
                         {/* Frequency Spectrum Chart */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Frequency Spectrum Analysis</CardTitle>
+                                <CardTitle>Frequency Spectrum</CardTitle>
                             </CardHeader>
                             <CardContent className="relative">
                                 <div className="absolute top-4 right-4 z-10 flex gap-2">
@@ -304,7 +267,14 @@ export default function AnalyticsPage() {
                         <div className="grid gap-6 lg:grid-cols-2">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Temperature Monitoring</CardTitle>
+                                    <CardTitle>
+                                        Temperature
+                                        {processedData.temperatureData.length > 0 && (
+                                            <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                                ({processedData.temperatureData[processedData.temperatureData.length - 1].temperature}°C)
+                                            </span>
+                                        )}
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     {loading ? (
@@ -326,7 +296,13 @@ export default function AnalyticsPage() {
                                                     label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
                                                 />
                                                 <Tooltip />
-                                                <Line type="monotone" dataKey="temperature" stroke="#ef4444" strokeWidth={2} name="Temperature (°C)" />
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="temperature" 
+                                                    stroke="#ef4444" 
+                                                    strokeWidth={2} 
+                                                    name="Temperature (°C)"
+                                                />
                                             </LineChart>
                                         </ResponsiveContainer>
                                     )}
@@ -335,7 +311,14 @@ export default function AnalyticsPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Magnetic Field Analysis</CardTitle>
+                                    <CardTitle>
+                                        Magnetic Field
+                                        {magneticFieldData.length > 0 && (
+                                            <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                                ({magneticFieldData[magneticFieldData.length - 1].magneticField} μT)
+                                            </span>
+                                        )}
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <ResponsiveContainer width="100%" height={250}>
@@ -359,7 +342,14 @@ export default function AnalyticsPage() {
                         <div className="grid gap-6 lg:grid-cols-2">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Pressure Monitoring</CardTitle>
+                                    <CardTitle>
+                                        Pressure
+                                        {processedData.pressureData.length > 0 && (
+                                            <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                                ({processedData.pressureData[processedData.pressureData.length - 1].pressure} hPa)
+                                            </span>
+                                        )}
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     {loading ? (
@@ -390,7 +380,14 @@ export default function AnalyticsPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Humidity Analysis</CardTitle>
+                                    <CardTitle>
+                                        Humidity
+                                        {processedData.humidityData.length > 0 && (
+                                            <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                                ({processedData.humidityData[processedData.humidityData.length - 1].humidity}%)
+                                            </span>
+                                        )}
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     {loading ? (
@@ -419,6 +416,7 @@ export default function AnalyticsPage() {
                                 </CardContent>
                             </Card>
                         </div>
+
                     </div>
                 ) : (
                     <div className="flex flex-col h-full">

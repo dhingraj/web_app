@@ -32,14 +32,6 @@ import {
 import { alerts as initialAlerts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import type { Alert } from "@/lib/types";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 
 function SeverityBadge({ severity }: { severity: Alert["severity"] }) {
   return (
@@ -101,19 +93,6 @@ export default function AlertsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="flex items-center gap-4 p-4 sm:p-6 border-b">
-        <Breadcrumb className="hidden md:flex">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/home">Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Alerts</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
       <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8">
         <Card>
           <CardHeader>

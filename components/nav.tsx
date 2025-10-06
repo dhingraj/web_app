@@ -3,7 +3,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Siren, Settings, BarChart, Smartphone, CalendarDays } from "lucide-react"
+import { LayoutDashboard, Siren, BarChart, Smartphone, CalendarDays } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   SidebarMenu,
@@ -37,11 +37,6 @@ const links = [
     href: "/scheduling",
     label: "Scheduling",
     icon: CalendarDays,
-  },
-  {
-    href: "/admin",
-    label: "Admin",
-    icon: Settings,
   },
 ]
 

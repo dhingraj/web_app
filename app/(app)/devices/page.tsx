@@ -15,12 +15,12 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
-type DeviceStatus = "Healthy" | "Warning" | "Critical" | "Offline";
+type AssetStatus = "Healthy" | "Warning" | "Critical" | "Offline";
 
-type Device = {
+type Asset = {
   id: string;
   name: string;
-  status: DeviceStatus;
+  status: AssetStatus;
   subplant: string;
   lastCheckin: string;
   reason: string;
@@ -33,7 +33,7 @@ const subplants = [
 ];
 
 
-const statusConfig: Record<DeviceStatus, { icon: React.ElementType, color: string, variant: "default" | "destructive" | "secondary" | "outline" }> = {
+const statusConfig: Record<AssetStatus, { icon: React.ElementType, color: string, variant: "default" | "destructive" | "secondary" | "outline" }> = {
     Healthy: { icon: CheckCircle, color: 'text-green-500', variant: 'default' },
     Warning: { icon: AlertTriangle, color: 'text-yellow-500', variant: 'secondary' },
     Critical: { icon: AlertTriangle, color: 'text-red-500', variant: 'destructive' },
@@ -41,17 +41,17 @@ const statusConfig: Record<DeviceStatus, { icon: React.ElementType, color: strin
 };
 
 
-function DevicesPageContent() {
+function AssetsPageContent() {
   const searchParams = useSearchParams();
   const initialSubplantFilter = searchParams.get('subplant') || 'all';
 
-  const [allDevices, setAllDevices] = useState<Device[]>([]);
+  const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const [subplantFilter, setSubplantFilter] = useState<string>(initialSubplantFilter);
   const [searchFilter, setSearchFilter] = useState<string>("");
   const [openAccordionItem, setOpenAccordionItem] = useState<string | undefined>();
 
   useEffect(() => {
-    const getStatus = (): DeviceStatus => {
+    const getStatus = (): AssetStatus => {
         const rand = Math.random();
         if (rand < 0.1) return "Offline";
         if (rand < 0.2) return "Critical";
@@ -59,52 +59,52 @@ function DevicesPageContent() {
         return "Healthy";
     };
 
-    const devices = Array.from({ length: 50 }, (_, i) => ({
+    const assets = Array.from({ length: 50 }, (_, i) => ({
       id: `DEV-${String(i + 1).padStart(3, '0')}`,
-      name: `Sensor Unit ${i + 1}`,
+      name: `Asset ${i + 1}`,
       status: getStatus(),
       subplant: subplants[i % subplants.length],
       lastCheckin: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toISOString(),
       reason: "No connection detected. Last check-in over 24 hours ago.",
     }));
-    setAllDevices(devices);
+    setAllAssets(assets);
   }, []);
 
-  const filteredDevices = useMemo(() => {
-    let devices = allDevices;
+  const filteredAssets = useMemo(() => {
+    let assets = allAssets;
 
     if (subplantFilter !== "all") {
-      devices = devices.filter(device => device.subplant === subplantFilter);
+      assets = assets.filter(asset => asset.subplant === subplantFilter);
     }
 
     if (searchFilter) {
-      devices = devices.filter(device => 
-        device.id.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        device.name.toLowerCase().includes(searchFilter.toLowerCase())
+      assets = assets.filter(asset => 
+        asset.id.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        asset.name.toLowerCase().includes(searchFilter.toLowerCase())
       );
     }
 
-    return devices;
-  }, [subplantFilter, searchFilter, allDevices]);
+    return assets;
+  }, [subplantFilter, searchFilter, allAssets]);
 
-  const devicesBySubplant = useMemo(() => {
-    return filteredDevices.reduce((acc, device) => {
-      if (!acc[device.subplant]) {
-        acc[device.subplant] = [];
+  const assetsBySubplant = useMemo(() => {
+    return filteredAssets.reduce((acc, asset) => {
+      if (!acc[asset.subplant]) {
+        acc[asset.subplant] = [];
       }
-      acc[device.subplant].push(device);
+      acc[asset.subplant].push(asset);
       return acc;
-    }, {} as Record<string, typeof allDevices>);
-  }, [filteredDevices]);
+    }, {} as Record<string, typeof allAssets>);
+  }, [filteredAssets]);
 
   useEffect(() => {
     if (subplantFilter !== "all") {
       setOpenAccordionItem(subplantFilter);
     } else {
-      const firstSubplant = Object.keys(devicesBySubplant)[0];
+      const firstSubplant = Object.keys(assetsBySubplant)[0];
       setOpenAccordionItem(searchFilter ? firstSubplant : undefined);
     }
-  }, [subplantFilter, devicesBySubplant, searchFilter]);
+  }, [subplantFilter, assetsBySubplant, searchFilter]);
   
   useEffect(() => {
     const subplantFromUrl = searchParams.get('subplant');
@@ -117,20 +117,20 @@ function DevicesPageContent() {
     setSubplantFilter(value);
   };
   
-  const getStatusDetails = (device: Device) => {
-    switch (device.status) {
-        case 'Offline': return device.reason;
+  const getStatusDetails = (asset: Asset) => {
+    switch (asset.status) {
+        case 'Offline': return asset.reason;
         case 'Critical': return 'Critical alert triggered. Immediate attention required.';
         case 'Warning': return 'Operating outside of normal parameters.';
-        case 'Healthy': return 'Device is operating normally.';
+        case 'Healthy': return 'Asset is operating normally.';
         default: return 'Status details not available.';
     }
   }
 
-  const statusOrder: DeviceStatus[] = ["Critical", "Warning", "Offline", "Healthy"];
+  const statusOrder: AssetStatus[] = ["Critical", "Warning", "Offline", "Healthy"];
 
-  const sortDevicesByHealth = (devices: Device[]) => {
-    return devices.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status));
+  const sortAssetsByHealth = (assets: Asset[]) => {
+    return assets.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status));
   };
 
 
@@ -139,7 +139,7 @@ function DevicesPageContent() {
        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Filters</CardTitle>
+            <CardTitle>Asset Filters</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
@@ -156,48 +156,48 @@ function DevicesPageContent() {
               </Select>
             </div>
             <div className="flex-1">
-              <Input 
-                placeholder="Search by Device ID or Name..."
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-              />
+                <Input 
+                  placeholder="Search by Asset ID or Name..."
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                />
             </div>
           </CardContent>
         </Card>
 
         <Card>
             <CardHeader>
-                <CardTitle>Device Inventory</CardTitle>
+                <CardTitle>Asset Inventory</CardTitle>
                 <CardDescription>A searchable, filterable inventory with quick health cues.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Accordion type="single" collapsible className="w-full" value={openAccordionItem} onValueChange={setOpenAccordionItem}>
-                    {Object.entries(devicesBySubplant).map(([subplant, devices]) => (
+                    {Object.entries(assetsBySubplant).map(([subplant, assets]) => (
                         <AccordionItem value={subplant} key={subplant}>
                             <AccordionTrigger className="text-lg font-semibold font-headline hover:no-underline">
                               <div className="flex items-center gap-4">
                                 <Server className="h-6 w-6" />
-                                <span>{subplant} ({devices.length} devices)</span>
+                                <span>{subplant} ({assets.length} assets)</span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent>
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                                {sortDevicesByHealth(devices).map(device => {
-                                    const StatusIcon = statusConfig[device.status].icon;
+                                {sortAssetsByHealth(assets).map(asset => {
+                                    const StatusIcon = statusConfig[asset.status].icon;
                                     return (
-                                        <Collapsible key={device.id} className="bg-muted/50 rounded-lg">
+                                        <Collapsible key={asset.id} className="bg-muted/50 rounded-lg">
                                             <div className="p-4 flex items-center justify-between">
                                                 <CollapsibleTrigger asChild>
                                                     <button className="flex-1 text-left">
-                                                        <p className="font-semibold">{device.name}</p>
-                                                        <p className="text-sm text-muted-foreground">{device.id}</p>
+                                                        <p className="font-semibold">{asset.name}</p>
+                                                        <p className="text-sm text-muted-foreground">{asset.id}</p>
                                                     </button>
                                                 </CollapsibleTrigger>
                                                 <div className="flex items-center gap-2 ml-4">
                                                     <CollapsibleTrigger asChild>
-                                                        <Badge variant={statusConfig[device.status].variant} className="flex items-center gap-2 cursor-pointer">
-                                                            <StatusIcon className={cn("h-4 w-4", statusConfig[device.status].color)} />
-                                                            {device.status}
+                                                        <Badge variant={statusConfig[asset.status].variant} className="flex items-center gap-2 cursor-pointer">
+                                                            <StatusIcon className={cn("h-4 w-4", statusConfig[asset.status].color)} />
+                                                            {asset.status}
                                                         </Badge>
                                                     </CollapsibleTrigger>
                                                 </div>
@@ -206,8 +206,8 @@ function DevicesPageContent() {
                                                 <div className="px-4 pb-4 space-y-2">
                                                     <div className="p-3 bg-background rounded-md">
                                                         <p className="font-semibold text-sm">Status Details</p>
-                                                        <p className="text-sm text-muted-foreground">{getStatusDetails(device)}</p>
-                                                        <p className="text-xs text-muted-foreground/80 mt-2">Last check-in: {new Date(device.lastCheckin).toLocaleString()}</p>
+                                                        <p className="text-sm text-muted-foreground">{getStatusDetails(asset)}</p>
+                                                        <p className="text-xs text-muted-foreground/80 mt-2">Last check-in: {new Date(asset.lastCheckin).toLocaleString()}</p>
                                                     </div>
                                                     <Link href="/analytics">
                                                       <Button variant="outline" className="w-full">
@@ -225,9 +225,9 @@ function DevicesPageContent() {
                         </AccordionItem>
                     ))}
                 </Accordion>
-                {filteredDevices.length === 0 && (
+                {filteredAssets.length === 0 && (
                     <div className="text-center text-muted-foreground py-8">
-                        No devices found matching your criteria.
+                        No assets found matching your criteria.
                     </div>
                 )}
             </CardContent>
@@ -237,10 +237,10 @@ function DevicesPageContent() {
   );
 }
 
-export default function DevicesPage() {
+export default function AssetsPage() {
   return (
     <React.Suspense fallback={<div>Loading...</div>}>
-      <DevicesPageContent />
+      <AssetsPageContent />
     </React.Suspense>
   )
 }

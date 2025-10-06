@@ -6,7 +6,7 @@ import { Activity, AlertTriangle, CheckCircle, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { kpiData } from "@/lib/data";
 
-type DeviceStatus = "Healthy" | "Warning" | "Critical" | "Offline";
+type AssetStatus = "Healthy" | "Warning" | "Critical" | "Offline";
 
 const subplants = [
   "Bravo Bay", "Hotel Sector", "Charlie Works",
@@ -32,23 +32,23 @@ const processFlow = {
   ]
 };
 
-const statusIcons: Record<Exclude<DeviceStatus, "Healthy">, { icon: React.ElementType, color: string }> = {
+const statusIcons: Record<Exclude<AssetStatus, "Healthy">, { icon: React.ElementType, color: string }> = {
     Offline: { icon: WifiOff, color: "text-gray-500" },
     Warning: { icon: AlertTriangle, color: "text-yellow-500" },
     Critical: { icon: AlertTriangle, color: "text-red-500" },
 };
 
-type Device = {
+type Asset = {
   id: string;
   name: string;
-  status: DeviceStatus;
+  status: AssetStatus;
   subplant: string;
   lastCheckin: string;
 };
 
 export default async function HomePage() {
 
-  const getStatus = (): DeviceStatus => {
+  const getStatus = (): AssetStatus => {
       const rand = Math.random();
       if (rand < 0.1) return "Offline";
       if (rand < 0.2) return "Critical";
@@ -56,7 +56,7 @@ export default async function HomePage() {
       return "Healthy";
   };
 
-  const allDevices: Device[] = Array.from({ length: 1500 }, (_, i) => ({
+  const allAssets: Asset[] = Array.from({ length: 1500 }, (_, i) => ({
     id: `DEV-${String(i + 1).padStart(4, '0')}`,
     name: `Sensor Unit ${i + 1}`,
     status: getStatus(),
@@ -66,22 +66,22 @@ export default async function HomePage() {
 
   const importantKPIs = kpiData.filter(kpi => kpi.title === "Alerts Triggered" || kpi.title === "% Uptime");
 
-  const getDeviceHealthBySubplant = (subplantName: string) => {
-    if (allDevices.length === 0) {
+  const getAssetHealthBySubplant = (subplantName: string) => {
+    if (allAssets.length === 0) {
       return { healthy: 0, warning: 0, critical: 0, offline: 0, total: 0 };
     }
-    const devicesInSubplant = allDevices.filter(device => device.subplant === subplantName);
-    const healthCounts = devicesInSubplant.reduce((acc, device) => {
-        acc[device.status] = (acc[device.status] || 0) + 1;
+    const assetsInSubplant = allAssets.filter(asset => asset.subplant === subplantName);
+    const healthCounts = assetsInSubplant.reduce((acc, asset) => {
+        acc[asset.status] = (acc[asset.status] || 0) + 1;
         return acc;
-    }, {} as Record<DeviceStatus, number>);
+    }, {} as Record<AssetStatus, number>);
   
     return {
       healthy: healthCounts.Healthy || 0,
       warning: healthCounts.Warning || 0,
       critical: healthCounts.Critical || 0,
       offline: healthCounts.Offline || 0,
-      total: devicesInSubplant.length
+      total: assetsInSubplant.length
     };
   };
 
@@ -117,8 +117,8 @@ export default async function HomePage() {
         
         <Card>
             <CardHeader>
-                <CardTitle>Devices by Location</CardTitle>
-                <CardDescription>View devices on the plant floor.</CardDescription>
+                <CardTitle>Assets by Location</CardTitle>
+                <CardDescription>View assets on the plant floor.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="bg-muted/30 p-4 lg:p-8 rounded-lg">
@@ -128,7 +128,7 @@ export default async function HomePage() {
                       <h3 className="text-lg font-semibold text-center mb-4 font-headline">{stage}</h3>
                       <div className="flex flex-col gap-4 items-center">
                         {plants.map((plant) => {
-                          const health = getDeviceHealthBySubplant(plant.name);
+                          const health = getAssetHealthBySubplant(plant.name);
                           return (
                             <Link key={plant.name} href={`/devices?subplant=${plant.name}`} className="w-full max-w-xs bg-background hover:bg-accent hover:text-accent-foreground transition-colors rounded-lg flex items-center justify-center p-6 h-32 border z-10">
                                 <div className="text-center">
@@ -145,7 +145,7 @@ export default async function HomePage() {
                                           </div>
                                       ))}
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-2">{health.total} Total Devices</p>
+                                    <p className="text-xs text-muted-foreground mt-2">{health.total} Total Assets</p>
                                 </div>
                             </Link>
                           );

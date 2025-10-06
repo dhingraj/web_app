@@ -4,21 +4,17 @@
 import * as React from "react";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Eye, Download, LayoutDashboard, Siren } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Eye, Download, LayoutDashboard } from "lucide-react";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Label } from 'recharts';
 
-const subplants = [
-  "Bravo Bay", "Hotel Sector", "Charlie Works",
-  "Alpha Station", "Delta Point", "India Complex",
-  "Foxtrot Factory", "Echo Yard", "Gamma Plant"
-];
 
 
 
 // Mock data for charts
+const subplants = ["Sub-plant A", "Sub-plant B", "Sub-plant C", "Sub-plant D"];
 const frequencySpectrumData = [
   { frequency: 0.1, vx: 0.2, vy: 0.15, vz: 0.18 },
   { frequency: 0.5, vx: 0.8, vy: 0.6, vz: 0.7 },
@@ -66,10 +62,11 @@ const humidityData = [
 ];
 
 export default function AnalyticsPage() {
-  const [subplantFilter, setSubplantFilter] = useState<string>("all");
-  const [deviceIdFilter, setDeviceIdFilter] = useState<string>("");
   const [view, setView] = useState<"dashboard" | "report">("dashboard");
   const [selectedAxes, setSelectedAxes] = useState<{vx: boolean, vy: boolean, vz: boolean}>({vx: true, vy: true, vz: true});
+  const [subplantFilter, setSubplantFilter] = useState("all");
+  const [deviceIdFilter, setDeviceIdFilter] = useState("");
+  const [selectedNode, setSelectedNode] = useState("Node 1");
   const [liveData, setLiveData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +101,10 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefreshData = () => {
+    fetchLiveData();
   };
 
   // Fetch data on component mount and set up polling
@@ -158,38 +159,44 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex flex-col h-full">
-       <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 space-y-8">
+      <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 space-y-8">
         
         <Card>
-            <CardContent className="pt-6 flex flex-col md:flex-row items-center gap-4">
-                <div className="flex-1">
+          <CardContent className="space-y-4 pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium">Sub-plant</label>
                 <Select value={subplantFilter} onValueChange={setSubplantFilter}>
                     <SelectTrigger>
-                    <SelectValue placeholder="Filter by Sub-plant" />
+                    <SelectValue placeholder="All Sub-plants" />
                     </SelectTrigger>
                     <SelectContent>
                     <SelectItem value="all">All Sub-plants</SelectItem>
-                    {subplants.map(plant => (
-                        <SelectItem key={plant} value={plant}>{plant}</SelectItem>
+                    {subplants.map((subplant) => (
+                      <SelectItem key={subplant} value={subplant}>
+                        {subplant}
+                      </SelectItem>
                     ))}
                     </SelectContent>
                 </Select>
                 </div>
-                <div className="flex-1">
-                <Input 
-                    placeholder="Search by Device ID..."
-                    value={deviceIdFilter}
-                    onChange={(e) => setDeviceIdFilter(e.target.value)}
+              <div>
+                <label className="text-sm font-medium">Asset ID</label>
+                <Input
+                  placeholder="Search by Asset ID..."
+                  value={deviceIdFilter}
+                  onChange={(e) => setDeviceIdFilter(e.target.value)}
                 />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={fetchLiveData} disabled={loading}>
-                    {loading ? 'Loading...' : 'Refresh Data'}
-                  </Button>
+              </div>
+              <div className="flex items-end gap-2">
+                <Button onClick={handleRefreshData} disabled={loading}>
+                  {loading ? "Loading..." : "Refresh Data"}
+                </Button>
                   <Button variant="outline" onClick={() => setView(view === 'dashboard' ? 'report' : 'dashboard')}>
                     {view === 'dashboard' ? <Eye className="mr-2 h-4 w-4" /> : <LayoutDashboard className="mr-2 h-4 w-4" />}
                     {view === 'dashboard' ? 'View Report' : 'View Dashboard'}
                   </Button>
+              </div>
                 </div>
             </CardContent>
         </Card>
@@ -198,6 +205,116 @@ export default function AnalyticsPage() {
             <CardContent className="flex-1 p-0">
                 {view === 'dashboard' ? (
                     <div className="p-6 space-y-6">
+                        {/* Node Selection Tabs */}
+                        <div className="flex flex-wrap gap-2">
+                            {["Node 1", "Node 2", "Node 3", "Node 4", "Node 5"].map((node) => (
+                                <Button 
+                                    key={node}
+                                    variant={selectedNode === node ? "default" : "outline"}
+                                    className={selectedNode === node 
+                                        ? "bg-blue-600 hover:bg-blue-700" 
+                                        : "border-gray-300 hover:bg-gray-50"
+                                    }
+                                    onClick={() => setSelectedNode(node)}
+                                >
+                                    {node}
+                                </Button>
+                            ))}
+                        </div>
+
+                        {/* Alert Summary Card */}
+                        <Card className="border-orange-200 bg-orange-50">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-orange-800">
+                                    <Siren className="h-5 w-5" />
+                                    Alert Summary - {selectedNode}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <h4 className="font-semibold text-orange-900 mb-2">Active Alerts</h4>
+                                        <div className="space-y-2">
+                                            {selectedNode === "Node 1" && (
+                                                <>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                                        <span className="text-sm">High Vibration Detected</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                                        <span className="text-sm">Temperature Threshold Exceeded</span>
+                                                    </div>
+                                                </>
+                                            )}
+                                            {selectedNode === "Node 2" && (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                    <span className="text-sm">All systems normal</span>
+                                                </div>
+                                            )}
+                                            {selectedNode === "Node 3" && (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                                    <span className="text-sm">Pressure fluctuation detected</span>
+                                                </div>
+                                            )}
+                                            {selectedNode === "Node 4" && (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                    <span className="text-sm">All systems normal</span>
+                                                </div>
+                                            )}
+                                            {selectedNode === "Node 5" && (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                                    <span className="text-sm">Motor bearing wear detected</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-orange-900 mb-2">Recommended Actions</h4>
+                                        <div className="space-y-2">
+                                            {selectedNode === "Node 1" && (
+                                                <>
+                                                    <div className="text-sm text-orange-800">
+                                                        • Schedule vibration analysis
+                                                    </div>
+                                                    <div className="text-sm text-orange-800">
+                                                        • Check cooling system
+                                                    </div>
+                                                    <div className="text-sm text-orange-800">
+                                                        • Review frequency spectrum patterns
+                                                    </div>
+                                                </>
+                                            )}
+                                            {selectedNode === "Node 2" && (
+                                                <div className="text-sm text-green-700">
+                                                    • Continue routine monitoring
+                                                </div>
+                                            )}
+                                            {selectedNode === "Node 3" && (
+                                                <div className="text-sm text-orange-800">
+                                                    • Investigate pressure source
+                                                </div>
+                                            )}
+                                            {selectedNode === "Node 4" && (
+                                                <div className="text-sm text-green-700">
+                                                    • Continue routine monitoring
+                                                </div>
+                                            )}
+                                            {selectedNode === "Node 5" && (
+                                                <div className="text-sm text-orange-800">
+                                                    • Schedule bearing replacement
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         {/* Frequency Spectrum Chart */}
                         <Card>
                             <CardHeader>
@@ -245,11 +362,11 @@ export default function AnalyticsPage() {
                                         Vz
                                     </button>
                                 </div>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <LineChart data={frequencySpectrumData}>
+                                <div className="pb-4">
+                                    <ResponsiveContainer width="100%" height={350}>
+                                        <LineChart data={frequencySpectrumData}>
                                         <XAxis 
                                             dataKey="frequency" 
-                                            label={{ value: 'Frequency (Hz)', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
                                         />
                                         <YAxis 
                                             label={{ value: 'Amplitude', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
@@ -259,7 +376,11 @@ export default function AnalyticsPage() {
                                         {selectedAxes.vy && <Line type="monotone" dataKey="vy" stroke="#82ca9d" strokeWidth={2} name="Vy" />}
                                         {selectedAxes.vz && <Line type="monotone" dataKey="vz" stroke="#ffc658" strokeWidth={2} name="Vz" />}
                                     </LineChart>
-                                </ResponsiveContainer>
+                                    </ResponsiveContainer>
+                                    <div className="text-center text-sm text-muted-foreground mt-2">
+                                        Frequency (Hz)
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -290,7 +411,6 @@ export default function AnalyticsPage() {
                                             <LineChart data={processedData.temperatureData}>
                                                 <XAxis 
                                                     dataKey="time" 
-                                                    label={{ value: 'Time', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
                                                 />
                                                 <YAxis 
                                                     label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
@@ -325,7 +445,6 @@ export default function AnalyticsPage() {
                                         <LineChart data={magneticFieldData}>
                                             <XAxis 
                                                 dataKey="time" 
-                                                label={{ value: 'Time', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
                                             />
                                             <YAxis 
                                                 label={{ value: 'Magnetic Field (μT)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
@@ -365,7 +484,6 @@ export default function AnalyticsPage() {
                                             <LineChart data={processedData.pressureData}>
                                                 <XAxis 
                                                     dataKey="time" 
-                                                    label={{ value: 'Time', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
                                                 />
                                                 <YAxis 
                                                     label={{ value: 'Pressure (hPa)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
@@ -403,7 +521,6 @@ export default function AnalyticsPage() {
                                             <LineChart data={processedData.humidityData}>
                                                 <XAxis 
                                                     dataKey="time" 
-                                                    label={{ value: 'Time', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
                                                 />
                                                 <YAxis 
                                                     label={{ value: 'Humidity (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}

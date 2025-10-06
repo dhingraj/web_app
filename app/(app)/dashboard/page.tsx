@@ -49,7 +49,7 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Devices</CardTitle>
+              <CardTitle className="text-sm font-medium">Active Assets</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -102,11 +102,11 @@ export default function DashboardPage() {
 
         {/* Charts Grid */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Device Performance Chart */}
+          {/* Asset Performance Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Device Performance Metrics</CardTitle>
-              <CardDescription>Real-time sensor data from all devices</CardDescription>
+              <CardTitle>Asset Performance Metrics</CardTitle>
+              <CardDescription>Real-time sensor data from all assets</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -123,11 +123,11 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Device Health by Location */}
+          {/* Asset Health by Location */}
           <Card>
             <CardHeader>
-              <CardTitle>Device Health by Location</CardTitle>
-              <CardDescription>Device status distribution across facilities</CardDescription>
+              <CardTitle>Asset Health by Location</CardTitle>
+              <CardDescription>Asset status distribution across facilities</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -198,8 +198,8 @@ export default function DashboardPage() {
         {/* Real-time Status Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Real-time Device Status</CardTitle>
-            <CardDescription>Live status updates from all connected devices</CardDescription>
+            <CardTitle>Real-time Asset Status</CardTitle>
+            <CardDescription>Live status updates from all connected assets</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

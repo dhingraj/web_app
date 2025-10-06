@@ -3,7 +3,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Siren, BarChart, Smartphone, CalendarDays } from "lucide-react"
+import { LayoutDashboard, Siren, Cog, CalendarDays } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   SidebarMenu,
@@ -20,18 +20,13 @@ const links = [
   },
     {
     href: "/devices",
-    label: "Devices",
-    icon: Smartphone,
+    label: "Assets",
+    icon: Cog,
   },
   {
     href: "/alerts",
     label: "Alerts",
     icon: Siren,
-  },
-  {
-    href: "/analytics",
-    label: "Analytics & Reports",
-    icon: BarChart,
   },
    {
     href: "/scheduling",

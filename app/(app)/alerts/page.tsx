@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, BarChart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -105,7 +105,7 @@ export default function AlertsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Device</TableHead>
+                  <TableHead>Asset</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Severity</TableHead>
                   <TableHead>Status</TableHead>
@@ -169,6 +169,10 @@ export default function AlertsPage() {
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
+                           <DropdownMenuItem onClick={() => router.push('/analytics')}>
+                              <BarChart className="mr-2 h-4 w-4" />
+                              View Analytics
+                          </DropdownMenuItem>
                            <DropdownMenuItem onClick={() => router.push('/scheduling')}>
                               Schedule Task
                           </DropdownMenuItem>

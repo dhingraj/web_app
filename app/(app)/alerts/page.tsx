@@ -32,6 +32,15 @@ import {
 import { alerts as initialAlerts } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import type { Alert } from "@/lib/types";
+import { useAssetData } from "@/lib/contexts/AssetContext";
+
+type AssetData = {
+  subplant: string;
+  asset_id: string;
+  node_id: string;
+  asset_status: string;
+  node_status: string;
+};
 
 function SeverityBadge({ severity }: { severity: Alert["severity"] }) {
   return (
@@ -77,8 +86,62 @@ function TimestampCell({ timestamp }: { timestamp: string }) {
 
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<Alert[]>(initialAlerts);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const { assetData, loading, error } = useAssetData();
   const router = useRouter();
+
+  useEffect(() => {
+    if (assetData.length > 0) {
+      // Generate alerts based on asset status with random asset assignment
+      const generatedAlerts: Alert[] = [];
+      const alertTypes = [
+        'Temperature Threshold Exceeded',
+        'Vibration Level Critical',
+        'Pressure Drop Detected',
+        'Humidity Sensor Malfunction',
+        'Power Supply Instability',
+        'Communication Timeout',
+        'Maintenance Due',
+        'Performance Degradation'
+      ];
+      
+      const statuses: Alert["status"][] = ['New', 'Acknowledged', 'Resolved'];
+      const severities: Alert["severity"][] = ['Critical', 'High', 'Medium', 'Low'];
+      
+      // Create a pool of unique assets for random assignment
+      const uniqueAssets = [...new Set(assetData.map((item: AssetData) => item.asset_id))];
+      
+      // Generate 15-20 random alerts
+      const numAlerts = Math.floor(Math.random() * 6) + 15; // 15-20 alerts
+      
+      for (let i = 0; i < numAlerts; i++) {
+        const randomAsset = uniqueAssets[Math.floor(Math.random() * uniqueAssets.length)];
+        const randomAlertType = alertTypes[Math.floor(Math.random() * alertTypes.length)];
+        const randomSeverity = severities[Math.floor(Math.random() * severities.length)];
+        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+        
+        // Find the asset data for this random asset
+        const assetInfo = assetData.find((item: AssetData) => item.asset_id === randomAsset);
+        
+        generatedAlerts.push({
+          id: `alert-${i}-${randomAsset}`,
+          title: `${randomAlertType} - ${randomAsset}`,
+          description: `${randomAlertType} detected in ${randomAsset}`,
+          severity: randomSeverity,
+          status: randomStatus,
+          timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(), // Random time within last week
+          device: randomAsset, // This will be displayed in the Asset column
+          assetId: randomAsset,
+          subplant: assetInfo?.subplant || 'Unknown',
+          nodeId: assetInfo?.node_id || 'Unknown'
+        });
+      }
+      
+      setAlerts(generatedAlerts);
+    } else if (error) {
+      setAlerts(initialAlerts); // Fallback to mock data
+    }
+  }, [assetData, error]);
 
   const handleStatusChange = (
     alertId: string,
@@ -90,6 +153,16 @@ export default function AlertsPage() {
       )
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8">
+          <div className="text-center">Loading alerts...</div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -121,7 +194,7 @@ export default function AlertsPage() {
                     <TableCell className="font-medium">
                       {alert.device}
                     </TableCell>
-                    <TableCell>{alert.description}</TableCell>
+                    <TableCell>{alert.title || alert.description}</TableCell>
                     <TableCell>
                       <SeverityBadge severity={alert.severity} />
                     </TableCell>
@@ -169,7 +242,7 @@ export default function AlertsPage() {
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                           <DropdownMenuItem onClick={() => router.push('/analytics')}>
+                           <DropdownMenuItem onClick={() => router.push(`/analytics?assetId=${alert.assetId}&subplant=${alert.subplant}`)}>
                               <BarChart className="mr-2 h-4 w-4" />
                               View Analytics
                           </DropdownMenuItem>

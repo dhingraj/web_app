@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Blinking red animation for critical subplants */
+@keyframes pulse-red {
+  0%, 100% {
+    background-color: #fee2e2; /* Light red */
+    border-color: #ef4444; /* Red */
+  }
+  50% {
+    background-color: #ef4444; /* Red */
+    border-color: #dc2626; /* Darker red */
+  }
+}
+
+.animate-pulse-red {
+  animation: pulse-red 1.5s infinite alternate;
+}
+
 @layer base {
   :root {
     --background: 210 100% 95%; /* Light Blue */

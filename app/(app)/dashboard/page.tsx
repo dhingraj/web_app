@@ -4,6 +4,15 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Activity, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, WifiOff } from "lucide-react";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useAssetData } from "@/lib/contexts/AssetContext";
+
+type AssetData = {
+  subplant: string;
+  asset_id: string;
+  node_id: string;
+  asset_status: string;
+  node_status: string;
+};
 
 // Mock data for charts
 const devicePerformanceData = [
@@ -42,6 +51,29 @@ const systemStatusData = [
 const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6b7280'];
 
 export default function DashboardPage() {
+  const { assetData, loading } = useAssetData();
+
+  // Calculate real KPIs from asset data
+  const totalAssets = [...new Set(assetData.map(item => item.asset_id))].length;
+  const totalNodes = assetData.length;
+  const healthyAssets = [...new Set(assetData.filter(item => item.asset_status === 'Healthy').map(item => item.asset_id))].length;
+  const criticalAssets = [...new Set(assetData.filter(item => item.asset_status === 'Critical').map(item => item.asset_id))].length;
+  const warningAssets = [...new Set(assetData.filter(item => item.asset_status === 'Warning').map(item => item.asset_id))].length;
+  const offlineAssets = [...new Set(assetData.filter(item => item.asset_status === 'Offline').map(item => item.asset_id))].length;
+  
+  const uptimePercentage = totalAssets > 0 ? Math.round((healthyAssets / totalAssets) * 100) : 0;
+  const alertsTriggered = criticalAssets + warningAssets;
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
+          <div className="text-center">Loading dashboard data...</div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
@@ -49,13 +81,13 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Assets</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">1,483</div>
+              <div className="text-2xl font-bold">{totalAssets}</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600">+2.1%</span> from last week
+                Across {[...new Set(assetData.map(item => item.subplant))].length} subplants
               </p>
             </CardContent>
           </Card>
@@ -66,9 +98,9 @@ export default function DashboardPage() {
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">99.8%</div>
+              <div className="text-2xl font-bold">{uptimePercentage}%</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600">+0.2%</span> from last month
+                {healthyAssets} healthy out of {totalAssets} total
               </p>
             </CardContent>
           </Card>
@@ -79,22 +111,22 @@ export default function DashboardPage() {
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">52</div>
+              <div className="text-2xl font-bold">{alertsTriggered}</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-red-600">+8</span> from yesterday
+                {criticalAssets} critical, {warningAssets} warning
               </p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">System Health</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Nodes</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">94.2%</div>
+              <div className="text-2xl font-bold">{totalNodes}</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600">+1.5%</span> from last week
+                Monitoring nodes across all assets
               </p>
             </CardContent>
           </Card>

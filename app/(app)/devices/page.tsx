@@ -14,8 +14,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { useAssetData } from "@/lib/contexts/AssetContext";
 
 type AssetStatus = "Healthy" | "Warning" | "Critical" | "Offline";
+
+type AssetData = {
+  subplant: string;
+  asset_id: string;
+  node_id: string;
+  asset_status: AssetStatus;
+  node_status: AssetStatus;
+};
 
 type Asset = {
   id: string;
@@ -24,13 +33,8 @@ type Asset = {
   subplant: string;
   lastCheckin: string;
   reason: string;
+  nodes: string[];
 };
-
-const subplants = [
-  "Bravo Bay", "Hotel Sector", "Charlie Works",
-  "Alpha Station", "Delta Point", "India Complex",
-  "Foxtrot Factory", "Echo Yard", "Gamma Plant"
-];
 
 
 const statusConfig: Record<AssetStatus, { icon: React.ElementType, color: string, variant: "default" | "destructive" | "secondary" | "outline" }> = {
@@ -44,31 +48,63 @@ const statusConfig: Record<AssetStatus, { icon: React.ElementType, color: string
 function AssetsPageContent() {
   const searchParams = useSearchParams();
   const initialSubplantFilter = searchParams.get('subplant') || 'all';
+  const { assetData, loading, error } = useAssetData();
 
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
+  const [subplants, setSubplants] = useState<string[]>([]);
   const [subplantFilter, setSubplantFilter] = useState<string>(initialSubplantFilter);
   const [searchFilter, setSearchFilter] = useState<string>("");
   const [openAccordionItem, setOpenAccordionItem] = useState<string | undefined>();
 
   useEffect(() => {
-    const getStatus = (): AssetStatus => {
-        const rand = Math.random();
-        if (rand < 0.1) return "Offline";
-        if (rand < 0.2) return "Critical";
-        if (rand < 0.4) return "Warning";
-        return "Healthy";
-    };
+    if (assetData.length > 0) {
+      // Extract unique subplants
+      const uniqueSubplants = [...new Set(assetData.map((item: AssetData) => item.subplant))];
+      setSubplants(uniqueSubplants);
+      
+      // Transform data into Asset format
+      const assetsMap = new Map<string, Asset>();
+      
+      assetData.forEach((item: AssetData) => {
+        const assetKey = `${item.subplant}-${item.asset_id}`;
+        
+        if (!assetsMap.has(assetKey)) {
+          assetsMap.set(assetKey, {
+            id: item.asset_id,
+            name: item.asset_id.replace('_', ' '),
+            status: item.asset_status,
+            subplant: item.subplant,
+            lastCheckin: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toISOString(),
+            reason: getReasonForStatus(item.asset_status),
+            nodes: []
+          });
+        }
+        
+        const asset = assetsMap.get(assetKey)!;
+        asset.nodes.push(item.node_id);
+        
+        // Update status to most critical if needed
+        if (item.asset_status === 'Critical' || 
+            (item.asset_status === 'Warning' && asset.status === 'Healthy') ||
+            (item.asset_status === 'Offline' && asset.status === 'Healthy')) {
+          asset.status = item.asset_status;
+          asset.reason = getReasonForStatus(item.asset_status);
+        }
+      });
+      
+      setAllAssets(Array.from(assetsMap.values()));
+    }
+  }, [assetData]);
 
-    const assets = Array.from({ length: 50 }, (_, i) => ({
-      id: `DEV-${String(i + 1).padStart(3, '0')}`,
-      name: `Asset ${i + 1}`,
-      status: getStatus(),
-      subplant: subplants[i % subplants.length],
-      lastCheckin: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toISOString(),
-      reason: "No connection detected. Last check-in over 24 hours ago.",
-    }));
-    setAllAssets(assets);
-  }, []);
+  const getReasonForStatus = (status: AssetStatus): string => {
+    switch (status) {
+      case 'Offline': return 'No connection detected. Last check-in over 24 hours ago.';
+      case 'Critical': return 'Critical alert triggered. Immediate attention required.';
+      case 'Warning': return 'Operating outside of normal parameters.';
+      case 'Healthy': return 'Asset is operating normally.';
+      default: return 'Status details not available.';
+    }
+  };
 
   const filteredAssets = useMemo(() => {
     let assets = allAssets;
@@ -133,6 +169,26 @@ function AssetsPageContent() {
     return assets.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status));
   };
 
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8">
+          <div className="text-center">Loading asset data...</div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col h-full">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8">
+          <div className="text-center text-red-500">Error loading data: {error}</div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -209,7 +265,7 @@ function AssetsPageContent() {
                                                         <p className="text-sm text-muted-foreground">{getStatusDetails(asset)}</p>
                                                         <p className="text-xs text-muted-foreground/80 mt-2">Last check-in: {new Date(asset.lastCheckin).toLocaleString()}</p>
                                                     </div>
-                                                    <Link href="/analytics">
+                                                    <Link href={`/analytics?assetId=${asset.id}&subplant=${asset.subplant}`}>
                                                       <Button variant="outline" className="w-full">
                                                         <BarChart className="mr-2 h-4 w-4" />
                                                         View Analytics

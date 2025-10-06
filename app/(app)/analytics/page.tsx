@@ -2,19 +2,29 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, Download, LayoutDashboard, Siren } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Label } from 'recharts';
+import { useAssetData } from "@/lib/contexts/AssetContext";
+import { useSensorData } from "@/lib/contexts/SensorDataContext";
+
+type AssetData = {
+  subplant: string;
+  asset_id: string;
+  node_id: string;
+  asset_status: string;
+  node_status: string;
+};
 
 
 
 
 // Mock data for charts
-const subplants = ["Sub-plant A", "Sub-plant B", "Sub-plant C", "Sub-plant D"];
 const frequencySpectrumData = [
   { frequency: 0.1, vx: 0.2, vy: 0.15, vz: 0.18 },
   { frequency: 0.5, vx: 0.8, vy: 0.6, vz: 0.7 },
@@ -62,67 +72,140 @@ const humidityData = [
 ];
 
 export default function AnalyticsPage() {
+  const searchParams = useSearchParams();
+  const assetIdFromUrl = searchParams.get('assetId');
+  const subplantFromUrl = searchParams.get('subplant');
+  const { assetData, loading: assetLoading, error: assetError } = useAssetData();
+  const { sensorData, loading: sensorLoading, error: sensorError, lastUpdated, refreshData } = useSensorData();
+  
   const [view, setView] = useState<"dashboard" | "report">("dashboard");
   const [selectedAxes, setSelectedAxes] = useState<{vx: boolean, vy: boolean, vz: boolean}>({vx: true, vy: true, vz: true});
-  const [subplantFilter, setSubplantFilter] = useState("all");
-  const [deviceIdFilter, setDeviceIdFilter] = useState("");
-  const [selectedNode, setSelectedNode] = useState("Node 1");
-  const [liveData, setLiveData] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [subplantFilter, setSubplantFilter] = useState(subplantFromUrl || "all");
+  const [deviceIdFilter, setDeviceIdFilter] = useState(assetIdFromUrl ? assetIdFromUrl : "all");
+  const [selectedNode, setSelectedNode] = useState("");
+  const [subplants, setSubplants] = useState<string[]>([]);
+  const [assets, setAssets] = useState<string[]>([]);
+  const [filteredAssets, setFilteredAssets] = useState<string[]>([]);
+  const [nodes, setNodes] = useState<string[]>([]);
+  const [filteredNodes, setFilteredNodes] = useState<string[]>([]);
 
-  // Fetch live data via Next.js API route (bypasses CORS)
-  const fetchLiveData = async () => {
-    try {
-      setLoading(true);
-      console.log('Fetching sensor data via Next.js API...');
+  // Initialize filters and data processing
+  useEffect(() => {
+    if (assetData.length > 0) {
+      // Extract unique values for filters
+      const uniqueSubplants = [...new Set(assetData.map((item: AssetData) => item.subplant))];
+      const uniqueAssets = [...new Set(assetData.map((item: AssetData) => item.asset_id))];
+      const uniqueNodes = [...new Set(assetData.map((item: AssetData) => item.node_id))];
       
-      const response = await fetch('/api/test-connection');
-      console.log('Response status:', response.status);
+      setSubplants(uniqueSubplants);
+      setAssets(uniqueAssets);
+      setNodes(uniqueNodes);
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Filter assets and nodes based on selected subplant
+      updateFilteredData(subplantFromUrl || "all", assetIdFromUrl || "");
+    }
+  }, [assetData, assetIdFromUrl, subplantFromUrl]);
+
+  // Handle URL parameters after asset data is loaded
+  useEffect(() => {
+    if (assetData.length > 0) {
+      // If we have URL parameters, update the filters accordingly
+      if (assetIdFromUrl && subplantFromUrl) {
+        setSubplantFilter(subplantFromUrl);
+        setDeviceIdFilter(assetIdFromUrl);
+        updateFilteredData(subplantFromUrl, assetIdFromUrl);
+      } else if (subplantFromUrl) {
+        setSubplantFilter(subplantFromUrl);
+        // Find first asset in the subplant
+        const firstAsset = assetData
+          .filter((item: AssetData) => item.subplant === subplantFromUrl)
+          .map((item: AssetData) => item.asset_id)[0];
+        if (firstAsset) {
+          setDeviceIdFilter(firstAsset);
+          updateFilteredData(subplantFromUrl, firstAsset);
+        }
       }
-      
-      const result = await response.json();
-      console.log('API response:', result);
-      
-      if (result.success && result.data.statusCode === 200) {
-        const data = JSON.parse(result.data.body);
-        console.log('Parsed data:', data);
-        setLiveData(data);
-        setError(null);
+    }
+  }, [assetData, assetIdFromUrl, subplantFromUrl]);
+
+  // Function to update filtered assets and nodes based on subplant selection
+  const updateFilteredData = (selectedSubplant: string, selectedAssetId: string = "") => {
+    let assetsToShow: string[] = [];
+    let nodesToShow: string[] = [];
+
+    if (selectedSubplant === "all") {
+      // Get all unique assets and nodes
+      assetsToShow = [...new Set(assetData.map((item: AssetData) => item.asset_id))];
+      nodesToShow = [...new Set(assetData.map((item: AssetData) => item.node_id))];
+    } else {
+      // Filter assets by subplant
+      assetsToShow = assetData
+        .filter((item: AssetData) => item.subplant === selectedSubplant)
+        .map((item: AssetData) => item.asset_id);
+      assetsToShow = [...new Set(assetsToShow)];
+
+      // Filter nodes based on asset ID if provided, otherwise show all nodes from subplant
+      if (selectedAssetId) {
+        const assetNodes = assetData
+          .filter((item: AssetData) => item.asset_id === selectedAssetId)
+          .map((item: AssetData) => item.node_id);
+        nodesToShow = [...new Set(assetNodes)];
       } else {
-        throw new Error(result.error || 'Failed to fetch data');
+        const subplantNodes = assetData
+          .filter((item: AssetData) => item.subplant === selectedSubplant)
+          .map((item: AssetData) => item.node_id);
+        nodesToShow = [...new Set(subplantNodes)];
       }
-    } catch (err) {
-      console.error('Full error details:', err);
-      setError(`Failed to load live data: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
+    }
+
+    setFilteredAssets(assetsToShow);
+    setFilteredNodes(nodesToShow);
+
+    // Set default selected node to first available
+    if (nodesToShow.length > 0 && !selectedNode) {
+      setSelectedNode(nodesToShow[0]);
     }
   };
 
-  const handleRefreshData = () => {
-    fetchLiveData();
+  // Handle subplant filter change
+  const handleSubplantChange = (value: string) => {
+    setSubplantFilter(value);
+    
+    if (value === "all") {
+      setDeviceIdFilter("all");
+      updateFilteredData(value, "");
+    } else {
+      // When selecting a specific subplant, find the first asset in that subplant
+      const firstAsset = assetData
+        .filter((item: AssetData) => item.subplant === value)
+        .map((item: AssetData) => item.asset_id)[0];
+      
+      if (firstAsset) {
+        setDeviceIdFilter(firstAsset);
+        updateFilteredData(value, firstAsset);
+      } else {
+        setDeviceIdFilter("all");
+        updateFilteredData(value, "");
+      }
+    }
   };
 
-  // Fetch data on component mount and set up polling
-  React.useEffect(() => {
-    fetchLiveData();
-    
-    // Poll every 15 minutes for live updates
-    const interval = setInterval(fetchLiveData, 900000);
-    
-    return () => clearInterval(interval);
-  }, []);
+  // Handle asset filter change
+  const handleAssetChange = (value: string) => {
+    setDeviceIdFilter(value);
+    updateFilteredData(subplantFilter, value === "all" ? "" : value);
+  };
+
+  const handleRefreshData = () => {
+    refreshData();
+  };
 
   // Process live data for charts
   const processedData = React.useMemo(() => {
-    if (!liveData.length) return { temperatureData: [], humidityData: [], pressureData: [] };
+    if (!sensorData.length) return { temperatureData: [], humidityData: [], pressureData: [] };
     
     // Sort by timestamp and take the last 20 readings
-    const sortedData = liveData
+    const sortedData = sensorData
       .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
       .slice(-20);
     
@@ -155,7 +238,7 @@ export default function AnalyticsPage() {
       humidityData,
       pressureData
     };
-  }, [liveData]);
+  }, [sensorData]);
 
   return (
     <div className="flex flex-col h-full">
@@ -166,7 +249,7 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium">Sub-plant</label>
-                <Select value={subplantFilter} onValueChange={setSubplantFilter}>
+                <Select value={subplantFilter} onValueChange={handleSubplantChange}>
                     <SelectTrigger>
                     <SelectValue placeholder="All Sub-plants" />
                     </SelectTrigger>
@@ -182,16 +265,24 @@ export default function AnalyticsPage() {
                 </div>
               <div>
                 <label className="text-sm font-medium">Asset ID</label>
-                <Input
-                  placeholder="Search by Asset ID..."
-                  value={deviceIdFilter}
-                  onChange={(e) => setDeviceIdFilter(e.target.value)}
-                />
-              </div>
-              <div className="flex items-end gap-2">
-                <Button onClick={handleRefreshData} disabled={loading}>
-                  {loading ? "Loading..." : "Refresh Data"}
-                </Button>
+                <Select value={deviceIdFilter || "all"} onValueChange={handleAssetChange}>
+                    <SelectTrigger>
+                    <SelectValue placeholder="All Assets" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="all">All Assets</SelectItem>
+                    {filteredAssets.map((asset) => (
+                      <SelectItem key={asset} value={asset}>
+                        {asset}
+                      </SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                </div>
+            <div className="flex items-end gap-2">
+              <Button onClick={handleRefreshData} disabled={sensorLoading}>
+                {sensorLoading ? "Loading..." : "Refresh Data"}
+              </Button>
                   <Button variant="outline" onClick={() => setView(view === 'dashboard' ? 'report' : 'dashboard')}>
                     {view === 'dashboard' ? <Eye className="mr-2 h-4 w-4" /> : <LayoutDashboard className="mr-2 h-4 w-4" />}
                     {view === 'dashboard' ? 'View Report' : 'View Dashboard'}
@@ -207,7 +298,7 @@ export default function AnalyticsPage() {
                     <div className="p-6 space-y-6">
                         {/* Node Selection Tabs */}
                         <div className="flex flex-wrap gap-2">
-                            {["Node 1", "Node 2", "Node 3", "Node 4", "Node 5"].map((node) => (
+                            {filteredNodes.map((node) => (
                                 <Button 
                                     key={node}
                                     variant={selectedNode === node ? "default" : "outline"}
@@ -398,13 +489,13 @@ export default function AnalyticsPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    {loading ? (
+                                    {sensorLoading ? (
                                         <div className="flex items-center justify-center h-[250px]">
                                             <div className="text-muted-foreground">Loading live data...</div>
                                         </div>
-                                    ) : error ? (
+                                    ) : sensorError ? (
                                         <div className="flex items-center justify-center h-[250px]">
-                                            <div className="text-red-500">{error}</div>
+                                            <div className="text-red-500">{sensorError}</div>
                                         </div>
                                     ) : (
                                         <ResponsiveContainer width="100%" height={250}>
@@ -471,13 +562,13 @@ export default function AnalyticsPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    {loading ? (
+                                    {sensorLoading ? (
                                         <div className="flex items-center justify-center h-[250px]">
                                             <div className="text-muted-foreground">Loading live data...</div>
                                         </div>
-                                    ) : error ? (
+                                    ) : sensorError ? (
                                         <div className="flex items-center justify-center h-[250px]">
-                                            <div className="text-red-500">{error}</div>
+                                            <div className="text-red-500">{sensorError}</div>
                                         </div>
                                     ) : (
                                         <ResponsiveContainer width="100%" height={250}>
@@ -508,13 +599,13 @@ export default function AnalyticsPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    {loading ? (
+                                    {sensorLoading ? (
                                         <div className="flex items-center justify-center h-[250px]">
                                             <div className="text-muted-foreground">Loading live data...</div>
                                         </div>
-                                    ) : error ? (
+                                    ) : sensorError ? (
                                         <div className="flex items-center justify-center h-[250px]">
-                                            <div className="text-red-500">{error}</div>
+                                            <div className="text-red-500">{sensorError}</div>
                                         </div>
                                     ) : (
                                         <ResponsiveContainer width="100%" height={250}>

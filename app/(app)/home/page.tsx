@@ -1,18 +1,37 @@
 
 
+"use client";
+
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Activity, AlertTriangle, CheckCircle, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { kpiData } from "@/lib/data";
+import { useAssetData } from "@/lib/contexts/AssetContext";
 
 type AssetStatus = "Healthy" | "Warning" | "Critical" | "Offline";
 
-const subplants = [
-  "Bravo Bay", "Hotel Sector", "Charlie Works",
-  "Alpha Station", "Delta Point", "India Complex",
-  "Foxtrot Factory", "Echo Yard", "Gamma Plant"
-];
+type AssetData = {
+  subplant: string;
+  asset_id: string;
+  node_id: string;
+  asset_status: AssetStatus;
+  node_status: AssetStatus;
+};
+
+type SubplantSummary = {
+  subplant: string;
+  totalAssets: number;
+  totalNodes: number;
+  healthyAssets: number;
+  warningAssets: number;
+  criticalAssets: number;
+  offlineAssets: number;
+  healthyNodes: number;
+  warningNodes: number;
+  criticalNodes: number;
+  offlineNodes: number;
+};
 
 const processFlow = {
   "Manufacturing": [
@@ -46,44 +65,78 @@ type Asset = {
   lastCheckin: string;
 };
 
-export default async function HomePage() {
+export default function HomePage() {
+  const { assetData, loading, error } = useAssetData();
 
-  const getStatus = (): AssetStatus => {
-      const rand = Math.random();
-      if (rand < 0.1) return "Offline";
-      if (rand < 0.2) return "Critical";
-      if (rand < 0.4) return "Warning";
-      return "Healthy";
+  const getSubplantSummary = (subplantName: string): SubplantSummary => {
+    const subplantData = assetData.filter(item => item.subplant === subplantName);
+    const uniqueAssets = [...new Set(subplantData.map(item => item.asset_id))];
+    
+    // Calculate asset status based on node statuses within each asset
+    let healthyAssets = 0;
+    let warningAssets = 0;
+    let criticalAssets = 0;
+    let offlineAssets = 0;
+
+    uniqueAssets.forEach(assetId => {
+      const assetNodes = subplantData.filter(item => item.asset_id === assetId);
+      // Determine asset status based on its nodes - prioritize most critical status
+      if (assetNodes.some(node => node.node_status === 'Critical')) {
+        criticalAssets++;
+      } else if (assetNodes.some(node => node.node_status === 'Warning')) {
+        warningAssets++;
+      } else if (assetNodes.some(node => node.node_status === 'Offline')) {
+        offlineAssets++;
+      } else {
+        healthyAssets++;
+      }
+    });
+
+    const nodeStatusCounts = subplantData.reduce((acc, item) => {
+      acc[item.node_status] = (acc[item.node_status] || 0) + 1;
+      return acc;
+    }, {} as Record<AssetStatus, number>);
+
+    return {
+      subplant: subplantName,
+      totalAssets: uniqueAssets.length,
+      totalNodes: subplantData.length,
+      healthyAssets,
+      warningAssets,
+      criticalAssets,
+      offlineAssets,
+      healthyNodes: nodeStatusCounts.Healthy || 0,
+      warningNodes: nodeStatusCounts.Warning || 0,
+      criticalNodes: nodeStatusCounts.Critical || 0,
+      offlineNodes: nodeStatusCounts.Offline || 0,
+    };
   };
 
-  const allAssets: Asset[] = Array.from({ length: 1500 }, (_, i) => ({
-    id: `DEV-${String(i + 1).padStart(4, '0')}`,
-    name: `Sensor Unit ${i + 1}`,
-    status: getStatus(),
-    subplant: subplants[i % subplants.length],
-    lastCheckin: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toISOString(),
-  }));
+  const getUniqueSubplants = () => {
+    return [...new Set(assetData.map(item => item.subplant))];
+  };
 
   const importantKPIs = kpiData.filter(kpi => kpi.title === "Alerts Triggered" || kpi.title === "% Uptime");
 
-  const getAssetHealthBySubplant = (subplantName: string) => {
-    if (allAssets.length === 0) {
-      return { healthy: 0, warning: 0, critical: 0, offline: 0, total: 0 };
-    }
-    const assetsInSubplant = allAssets.filter(asset => asset.subplant === subplantName);
-    const healthCounts = assetsInSubplant.reduce((acc, asset) => {
-        acc[asset.status] = (acc[asset.status] || 0) + 1;
-        return acc;
-    }, {} as Record<AssetStatus, number>);
-  
-    return {
-      healthy: healthCounts.Healthy || 0,
-      warning: healthCounts.Warning || 0,
-      critical: healthCounts.Critical || 0,
-      offline: healthCounts.Offline || 0,
-      total: assetsInSubplant.length
-    };
-  };
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8">
+          <div className="text-center">Loading asset data...</div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col h-full">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8">
+          <div className="text-center text-red-500">Error loading data: {error}</div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -117,42 +170,56 @@ export default async function HomePage() {
         
         <Card>
             <CardHeader>
-                <CardTitle>Assets by Location</CardTitle>
-                <CardDescription>View assets on the plant floor.</CardDescription>
+                <CardTitle>Assets by Subplant</CardTitle>
+                <CardDescription>View assets across all subplants.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="bg-muted/30 p-4 lg:p-8 rounded-lg">
-                <div className="flex flex-col md:flex-row gap-8 justify-between">
-                  {Object.entries(processFlow).map(([stage, plants]) => (
-                    <div key={stage} className="flex-1">
-                      <h3 className="text-lg font-semibold text-center mb-4 font-headline">{stage}</h3>
-                      <div className="flex flex-col gap-4 items-center">
-                        {plants.map((plant) => {
-                          const health = getAssetHealthBySubplant(plant.name);
-                          return (
-                            <Link key={plant.name} href={`/devices?subplant=${plant.name}`} className="w-full max-w-xs bg-background hover:bg-accent hover:text-accent-foreground transition-colors rounded-lg flex items-center justify-center p-6 h-32 border z-10">
-                                <div className="text-center">
-                                    <h3 className="font-semibold text-lg">{plant.name}</h3>
-                                    <div className="flex justify-center gap-4 mt-2 text-sm">
-                                      <div className="flex items-center gap-1">
-                                        <CheckCircle className="h-4 w-4 text-green-500"/>
-                                        <span>{health.healthy}</span>
-                                      </div>
-                                      {Object.entries(statusIcons).map(([status, { icon: Icon, color }]) => (
-                                          <div key={status} className="flex items-center gap-1">
-                                              <Icon className={cn("h-4 w-4", color)} />
-                                              <span>{health[status.toLowerCase() as keyof typeof health]}</span>
-                                          </div>
-                                      ))}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-2">{health.total} Total Assets</p>
-                                </div>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex flex-wrap gap-6 justify-center">
+                  {getUniqueSubplants().map((subplant) => {
+                    const summary = getSubplantSummary(subplant);
+                    const criticalPercentage = summary.totalAssets > 0 ? (summary.criticalAssets / summary.totalAssets) * 100 : 0;
+                    const isCriticalBlinking = criticalPercentage >= 50;
+                    
+                    return (
+                      <Link 
+                        key={subplant} 
+                        href={`/devices?subplant=${subplant}`} 
+                        className={`transition-colors rounded-lg flex flex-col items-center p-6 h-40 border min-w-[250px] max-w-[300px] ${
+                          isCriticalBlinking 
+                            ? 'animate-pulse-red hover:opacity-90' 
+                            : 'bg-background hover:bg-accent hover:text-accent-foreground'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <h3 className={`font-semibold text-lg mb-2 ${isCriticalBlinking ? 'text-white' : ''}`}>
+                            {subplant}
+                          </h3>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="flex items-center gap-1">
+                              <CheckCircle className="h-4 w-4 text-green-500"/>
+                              <span className={isCriticalBlinking ? 'text-white' : ''}>{summary.healthyAssets}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <AlertTriangle className="h-4 w-4 text-yellow-500"/>
+                              <span className={isCriticalBlinking ? 'text-white' : ''}>{summary.warningAssets}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <AlertTriangle className="h-4 w-4 text-red-500"/>
+                              <span className={isCriticalBlinking ? 'text-white' : ''}>{summary.criticalAssets}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <WifiOff className="h-4 w-4 text-gray-500"/>
+                              <span className={isCriticalBlinking ? 'text-white' : ''}>{summary.offlineAssets}</span>
+                            </div>
+                          </div>
+                          <p className={`text-xs mt-2 ${isCriticalBlinking ? 'text-white/90' : 'text-muted-foreground'}`}>
+                            {summary.totalAssets} Assets • {summary.totalNodes} Nodes
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             </CardContent>

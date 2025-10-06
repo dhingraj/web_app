@@ -2,11 +2,9 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarFooter,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Nav } from "./nav"
-import { UserNav } from "./user-nav"
 import { cn } from "@/lib/utils";
 
 
@@ -22,9 +20,6 @@ export function AppSidebar() {
       <SidebarContent>
         <Nav />
       </SidebarContent>
-      <SidebarFooter>
-        <UserNav />
-      </SidebarFooter>
     </Sidebar>
   )
 }

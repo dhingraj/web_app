@@ -59,7 +59,7 @@ function AssetsPageContent() {
   useEffect(() => {
     if (assetData.length > 0) {
       // Extract unique subplants
-      const uniqueSubplants = [...new Set(assetData.map((item: AssetData) => item.subplant))];
+      const uniqueSubplants = Array.from(new Set(assetData.map((item: AssetData) => item.subplant)));
       setSubplants(uniqueSubplants);
       
       // Transform data into Asset format

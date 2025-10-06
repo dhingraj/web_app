@@ -54,12 +54,12 @@ export default function DashboardPage() {
   const { assetData, loading } = useAssetData();
 
   // Calculate real KPIs from asset data
-  const totalAssets = [...new Set(assetData.map(item => item.asset_id))].length;
+  const totalAssets = Array.from(new Set(assetData.map(item => item.asset_id))).length;
   const totalNodes = assetData.length;
-  const healthyAssets = [...new Set(assetData.filter(item => item.asset_status === 'Healthy').map(item => item.asset_id))].length;
-  const criticalAssets = [...new Set(assetData.filter(item => item.asset_status === 'Critical').map(item => item.asset_id))].length;
-  const warningAssets = [...new Set(assetData.filter(item => item.asset_status === 'Warning').map(item => item.asset_id))].length;
-  const offlineAssets = [...new Set(assetData.filter(item => item.asset_status === 'Offline').map(item => item.asset_id))].length;
+  const healthyAssets = Array.from(new Set(assetData.filter(item => item.asset_status === 'Healthy').map(item => item.asset_id))).length;
+  const criticalAssets = Array.from(new Set(assetData.filter(item => item.asset_status === 'Critical').map(item => item.asset_id))).length;
+  const warningAssets = Array.from(new Set(assetData.filter(item => item.asset_status === 'Warning').map(item => item.asset_id))).length;
+  const offlineAssets = Array.from(new Set(assetData.filter(item => item.asset_status === 'Offline').map(item => item.asset_id))).length;
   
   const uptimePercentage = totalAssets > 0 ? Math.round((healthyAssets / totalAssets) * 100) : 0;
   const alertsTriggered = criticalAssets + warningAssets;
@@ -87,7 +87,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">{totalAssets}</div>
               <p className="text-xs text-muted-foreground">
-                Across {[...new Set(assetData.map(item => item.subplant))].length} subplants
+                Across {Array.from(new Set(assetData.map(item => item.subplant))).length} subplants
               </p>
             </CardContent>
           </Card>

@@ -70,7 +70,7 @@ export default function HomePage() {
 
   const getSubplantSummary = (subplantName: string): SubplantSummary => {
     const subplantData = assetData.filter(item => item.subplant === subplantName);
-    const uniqueAssets = [...new Set(subplantData.map(item => item.asset_id))];
+    const uniqueAssets = Array.from(new Set(subplantData.map(item => item.asset_id)));
     
     // Calculate asset status based on node statuses within each asset
     let healthyAssets = 0;
@@ -113,7 +113,7 @@ export default function HomePage() {
   };
 
   const getUniqueSubplants = () => {
-    return [...new Set(assetData.map(item => item.subplant))];
+    return Array.from(new Set(assetData.map(item => item.subplant)));
   };
 
   const importantKPIs = kpiData.filter(kpi => kpi.title === "Alerts Triggered" || kpi.title === "% Uptime");

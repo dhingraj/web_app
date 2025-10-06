@@ -109,7 +109,7 @@ export default function AlertsPage() {
       const severities: Alert["severity"][] = ['Critical', 'High', 'Medium', 'Low'];
       
       // Create a pool of unique assets for random assignment
-      const uniqueAssets = [...new Set(assetData.map((item: AssetData) => item.asset_id))];
+      const uniqueAssets = Array.from(new Set(assetData.map((item: AssetData) => item.asset_id)));
       
       // Generate 15-20 random alerts
       const numAlerts = Math.floor(Math.random() * 6) + 15; // 15-20 alerts

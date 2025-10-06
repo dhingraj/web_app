@@ -93,9 +93,9 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (assetData.length > 0) {
       // Extract unique values for filters
-      const uniqueSubplants = [...new Set(assetData.map((item: AssetData) => item.subplant))];
-      const uniqueAssets = [...new Set(assetData.map((item: AssetData) => item.asset_id))];
-      const uniqueNodes = [...new Set(assetData.map((item: AssetData) => item.node_id))];
+      const uniqueSubplants = Array.from(new Set(assetData.map((item: AssetData) => item.subplant)));
+      const uniqueAssets = Array.from(new Set(assetData.map((item: AssetData) => item.asset_id)));
+      const uniqueNodes = Array.from(new Set(assetData.map((item: AssetData) => item.node_id)));
       
       setSubplants(uniqueSubplants);
       setAssets(uniqueAssets);
@@ -135,26 +135,26 @@ export default function AnalyticsPage() {
 
     if (selectedSubplant === "all") {
       // Get all unique assets and nodes
-      assetsToShow = [...new Set(assetData.map((item: AssetData) => item.asset_id))];
-      nodesToShow = [...new Set(assetData.map((item: AssetData) => item.node_id))];
+      assetsToShow = Array.from(new Set(assetData.map((item: AssetData) => item.asset_id)));
+      nodesToShow = Array.from(new Set(assetData.map((item: AssetData) => item.node_id)));
     } else {
       // Filter assets by subplant
       assetsToShow = assetData
         .filter((item: AssetData) => item.subplant === selectedSubplant)
         .map((item: AssetData) => item.asset_id);
-      assetsToShow = [...new Set(assetsToShow)];
+      assetsToShow = Array.from(new Set(assetsToShow));
 
       // Filter nodes based on asset ID if provided, otherwise show all nodes from subplant
       if (selectedAssetId) {
         const assetNodes = assetData
           .filter((item: AssetData) => item.asset_id === selectedAssetId)
           .map((item: AssetData) => item.node_id);
-        nodesToShow = [...new Set(assetNodes)];
+        nodesToShow = Array.from(new Set(assetNodes));
       } else {
         const subplantNodes = assetData
           .filter((item: AssetData) => item.subplant === selectedSubplant)
           .map((item: AssetData) => item.node_id);
-        nodesToShow = [...new Set(subplantNodes)];
+        nodesToShow = Array.from(new Set(subplantNodes));
       }
     }
 

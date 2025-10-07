@@ -67,7 +67,7 @@ export default function AnalyticsPage() {
   const searchParams = useSearchParams();
   const assetIdFromUrl = searchParams.get('assetId');
   const subplantFromUrl = searchParams.get('subplant');
-  const { assetData, loading: assetLoading, error: assetError } = useAssetData();
+  const { assetData, loading: assetLoading, error: assetError, refreshData: refreshAssetData } = useAssetData();
   const { sensorData, loading: sensorLoading, error: sensorError, lastUpdated, refreshData } = useSensorData();
   
   const [view, setView] = useState<"dashboard" | "report">("dashboard");
@@ -188,8 +188,12 @@ export default function AnalyticsPage() {
     updateFilteredData(subplantFilter, value === "all" ? "" : value);
   };
 
-  const handleRefreshData = () => {
-    refreshData();
+  const handleRefreshData = async () => {
+    // Refresh both sensor data and asset data
+    await Promise.all([
+      refreshData(), // Refresh sensor data
+      refreshAssetData() // Refresh asset data
+    ]);
   };
 
   // Process live data for charts
@@ -272,8 +276,8 @@ export default function AnalyticsPage() {
                 </Select>
                 </div>
             <div className="flex items-end gap-2">
-              <Button onClick={handleRefreshData} disabled={sensorLoading}>
-                {sensorLoading ? "Loading..." : "Refresh Data"}
+              <Button onClick={handleRefreshData} disabled={sensorLoading || assetLoading}>
+                {(sensorLoading || assetLoading) ? "Loading..." : "Refresh Data"}
               </Button>
                   <Button variant="outline" onClick={() => setView(view === 'dashboard' ? 'report' : 'dashboard')}>
                     {view === 'dashboard' ? <Eye className="mr-2 h-4 w-4" /> : <LayoutDashboard className="mr-2 h-4 w-4" />}

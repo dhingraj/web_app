@@ -165,6 +165,9 @@ function AssetsPageContent() {
       <div className="flex flex-col h-full">
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8">
           <div className="text-center">Loading asset data...</div>
+          <div className="text-center text-sm text-muted-foreground mt-2">
+            Fetching asset information and sensor data...
+          </div>
         </main>
       </div>
     );

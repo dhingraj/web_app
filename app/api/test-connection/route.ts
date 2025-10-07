@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic'; // Force dynamic rendering
+export const revalidate = 0; // Disable caching
+
 export async function GET(request: NextRequest) {
   try {
     console.log('Testing connection to AWS Lambda...');
@@ -9,6 +12,8 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
       },
+      cache: 'no-store', // Disable Next.js App Router data cache
+      next: { revalidate: 0 }, // Force revalidation on every request
     });
 
     console.log('Response status:', response.status);

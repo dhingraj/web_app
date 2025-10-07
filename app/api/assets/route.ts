@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic'; // Force dynamic rendering
+export const revalidate = 0; // Disable caching
+
 export async function GET() {
   try {
     console.log('Fetching asset data from external API - cache cleared...');
@@ -11,6 +14,8 @@ export async function GET() {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
           },
+          cache: 'no-store', // Disable Next.js App Router data cache
+          next: { revalidate: 0 }, // Force revalidation on every request
         });
 
     if (!response.ok) {

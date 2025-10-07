@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     console.log('Fetching asset data from external API - cache cleared...');
+    console.log('API Version:', new Date().toISOString());
     
         const response = await fetch(`https://8vaw2vaqn7.execute-api.us-east-1.amazonaws.com/stage?t=${Date.now()}`, {
           method: 'GET',
@@ -29,10 +30,13 @@ export async function GET() {
 
         const apiResponse = NextResponse.json(assetData);
         
-        // Add cache-busting headers to prevent browser and CDN caching
-        apiResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        // Add comprehensive cache-busting headers to prevent ALL caching
+        apiResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, private, max-age=0');
         apiResponse.headers.set('Pragma', 'no-cache');
         apiResponse.headers.set('Expires', '0');
+        apiResponse.headers.set('Last-Modified', new Date().toUTCString());
+        apiResponse.headers.set('ETag', `"${Date.now()}-${Math.random()}"`);
+        apiResponse.headers.set('Vary', '*');
         
         return apiResponse;
   } catch (error) {

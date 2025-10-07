@@ -93,6 +93,9 @@ const locations = [
   },
 ];
 
+export const dynamic = 'force-dynamic'; // Force dynamic rendering
+export const revalidate = 0; // Disable caching
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

@@ -26,12 +26,21 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAssetData = async () => {
+  const fetchAssetData = async (forceRefresh = false) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/assets?t=${Date.now()}&r=${Math.random()}`, {
+      // Add more aggressive cache-busting for manual refresh
+      const timestamp = Date.now();
+      const random = Math.random();
+      const url = forceRefresh 
+        ? `/api/assets?t=${timestamp}&r=${random}&refresh=${timestamp}&force=1`
+        : `/api/assets?t=${timestamp}&r=${random}`;
+      
+      console.log('Fetching asset data:', { url, forceRefresh, timestamp });
+      
+      const response = await fetch(url, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -42,6 +51,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
         throw new Error('Failed to fetch asset data');
       }
       const data = await response.json();
+      console.log('Asset data received:', { count: data.length, forceRefresh });
       setAssetData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -52,7 +62,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshData = async () => {
-    await fetchAssetData();
+    console.log('Manual refresh triggered');
+    await fetchAssetData(true); // Force refresh with aggressive cache-busting
   };
 
   useEffect(() => {

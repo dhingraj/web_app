@@ -27,14 +27,14 @@ export async function GET() {
       assetData = data.body || data;
     }
 
-        const response = NextResponse.json(assetData);
+        const apiResponse = NextResponse.json(assetData);
         
         // Add cache-busting headers to prevent browser and CDN caching
-        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-        response.headers.set('Pragma', 'no-cache');
-        response.headers.set('Expires', '0');
+        apiResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        apiResponse.headers.set('Pragma', 'no-cache');
+        apiResponse.headers.set('Expires', '0');
         
-        return response;
+        return apiResponse;
   } catch (error) {
     console.error('Error fetching asset data:', error);
     return NextResponse.json(

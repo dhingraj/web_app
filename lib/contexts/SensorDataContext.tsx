@@ -2,11 +2,13 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type SensorData = {
+export type SensorData = {
+  node_id: string;
   ts: string;
   temp: number;
   humidity: number;
   pressure: number;
+  magnetic_field: number;
 };
 
 type SensorDataContextType = {

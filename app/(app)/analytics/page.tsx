@@ -27,41 +27,6 @@ const frequencySpectrumData = [
   { frequency: 20.0, vx: 0.05, vy: 0.04, vz: 0.045 },
 ];
 
-const temperatureData = [
-  { time: '00:00', temperature: 24.5 },
-  { time: '04:00', temperature: 23.8 },
-  { time: '08:00', temperature: 25.2 },
-  { time: '12:00', temperature: 26.8 },
-  { time: '16:00', temperature: 27.3 },
-  { time: '20:00', temperature: 25.9 },
-];
-
-const magneticFieldData = [
-  { time: '00:00', magneticField: 45.2 },
-  { time: '04:00', magneticField: 44.8 },
-  { time: '08:00', magneticField: 46.1 },
-  { time: '12:00', magneticField: 47.3 },
-  { time: '16:00', magneticField: 46.9 },
-  { time: '20:00', magneticField: 45.7 },
-];
-
-const pressureData = [
-  { time: '00:00', pressure: 1013.2 },
-  { time: '04:00', pressure: 1012.8 },
-  { time: '08:00', pressure: 1014.1 },
-  { time: '12:00', pressure: 1013.9 },
-  { time: '16:00', pressure: 1012.5 },
-  { time: '20:00', pressure: 1013.7 },
-];
-
-const humidityData = [
-  { time: '00:00', humidity: 45 },
-  { time: '04:00', humidity: 48 },
-  { time: '08:00', humidity: 42 },
-  { time: '12:00', humidity: 38 },
-  { time: '16:00', humidity: 35 },
-  { time: '20:00', humidity: 41 },
-];
 
 export default function AnalyticsPage() {
   const searchParams = useSearchParams();
@@ -162,7 +127,8 @@ export default function AnalyticsPage() {
   // Handle subplant filter change
   const handleSubplantChange = (value: string) => {
     setSubplantFilter(value);
-    
+    setSelectedNode(""); // Clear selected node when subplant changes
+
     if (value === "all") {
       setDeviceIdFilter("all");
       updateFilteredData(value, "");
@@ -171,7 +137,7 @@ export default function AnalyticsPage() {
       const firstAsset = assetData
         .filter((item: AssetData) => item.subplant === value)
         .map((item: AssetData) => item.asset_id)[0];
-      
+
       if (firstAsset) {
         setDeviceIdFilter(firstAsset);
         updateFilteredData(value, firstAsset);
@@ -185,6 +151,7 @@ export default function AnalyticsPage() {
   // Handle asset filter change
   const handleAssetChange = (value: string) => {
     setDeviceIdFilter(value);
+    setSelectedNode(""); // Clear selected node when asset changes
     updateFilteredData(subplantFilter, value === "all" ? "" : value);
   };
 
@@ -196,12 +163,21 @@ export default function AnalyticsPage() {
     ]);
   };
 
-  // Process live data for charts
+  // Process live data for charts - filter by selected node
   const processedData = React.useMemo(() => {
-    if (!sensorData.length) return { temperatureData: [], humidityData: [], pressureData: [] };
+    if (!sensorData.length) return { temperatureData: [], humidityData: [], pressureData: [], magneticFieldData: [] };
+    
+    // Filter data by selected node (if a node is selected)
+    let filteredData = sensorData;
+    if (selectedNode) {
+      filteredData = sensorData.filter(item => item.node_id === selectedNode);
+    }
+    
+    // If no data for selected node, return empty
+    if (!filteredData.length) return { temperatureData: [], humidityData: [], pressureData: [], magneticFieldData: [] };
     
     // Sort by timestamp and take the last 20 readings
-    const sortedData = sensorData
+    const sortedData = filteredData
       .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
       .slice(-20);
     
@@ -225,16 +201,25 @@ export default function AnalyticsPage() {
       time: new Date(item.ts).toLocaleTimeString('en-US', { 
         hour: '2-digit', 
         minute: '2-digit' 
-      }),
+       }),
       pressure: item.pressure
+    }));
+    
+    const magneticFieldData = sortedData.map(item => ({
+      time: new Date(item.ts).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+      magneticField: item.magnetic_field
     }));
     
     return {
       temperatureData,
       humidityData,
-      pressureData
+      pressureData,
+      magneticFieldData
     };
-  }, [sensorData]);
+  }, [sensorData, selectedNode]);
 
   return (
     <div className="flex flex-col h-full">
@@ -478,14 +463,18 @@ export default function AnalyticsPage() {
                                     <CardTitle>
                                         Temperature
                                         {processedData.temperatureData.length > 0 && (
-                                            <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                                ({processedData.temperatureData[processedData.temperatureData.length - 1].temperature}°C)
+                                            <span>
+                                                {' '}({processedData.temperatureData[processedData.temperatureData.length - 1].temperature}°C)
                                             </span>
                                         )}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    {sensorLoading ? (
+                                    {!selectedNode ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-muted-foreground">Please select a node to view data</div>
+                                        </div>
+                                    ) : sensorLoading ? (
                                         <div className="flex items-center justify-center h-[250px]">
                                             <div className="text-muted-foreground">Loading live data...</div>
                                         </div>
@@ -506,7 +495,7 @@ export default function AnalyticsPage() {
                                                 <Line 
                                                     type="monotone" 
                                                     dataKey="temperature" 
-                                                    stroke="#ef4444" 
+                                                    stroke="#3b82f6" 
                                                     strokeWidth={2} 
                                                     name="Temperature (°C)"
                                                 />
@@ -520,26 +509,40 @@ export default function AnalyticsPage() {
                                 <CardHeader>
                                     <CardTitle>
                                         Magnetic Field
-                                        {magneticFieldData.length > 0 && (
-                                            <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                                ({magneticFieldData[magneticFieldData.length - 1].magneticField} μT)
+                                        {processedData.magneticFieldData.length > 0 && (
+                                            <span>
+                                                {' '}({processedData.magneticFieldData[processedData.magneticFieldData.length - 1].magneticField} μT)
                                             </span>
                                         )}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <ResponsiveContainer width="100%" height={250}>
-                                        <LineChart data={magneticFieldData}>
-                                            <XAxis 
-                                                dataKey="time" 
-                                            />
-                                            <YAxis 
-                                                label={{ value: 'Magnetic Field (μT)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
-                                            />
-                                            <Tooltip />
-                                            <Line type="monotone" dataKey="magneticField" stroke="#3b82f6" strokeWidth={2} name="Magnetic Field (μT)" />
-                                        </LineChart>
-                                    </ResponsiveContainer>
+                                    {!selectedNode ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-muted-foreground">Please select a node to view data</div>
+                                        </div>
+                                    ) : sensorLoading ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-muted-foreground">Loading live data...</div>
+                                        </div>
+                                    ) : sensorError ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-red-500">{sensorError}</div>
+                                        </div>
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <LineChart data={processedData.magneticFieldData}>
+                                                <XAxis 
+                                                    dataKey="time" 
+                                                />
+                                                <YAxis 
+                                                    label={{ value: 'Magnetic Field (μT)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+                                                />
+                                                <Tooltip />
+                                                <Line type="monotone" dataKey="magneticField" stroke="#3b82f6" strokeWidth={2} name="Magnetic Field (μT)" />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>
@@ -551,14 +554,18 @@ export default function AnalyticsPage() {
                                     <CardTitle>
                                         Pressure
                                         {processedData.pressureData.length > 0 && (
-                                            <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                                ({processedData.pressureData[processedData.pressureData.length - 1].pressure} hPa)
+                                            <span>
+                                                {' '}({processedData.pressureData[processedData.pressureData.length - 1].pressure} hPa)
                                             </span>
                                         )}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    {sensorLoading ? (
+                                    {!selectedNode ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-muted-foreground">Please select a node to view data</div>
+                                        </div>
+                                    ) : sensorLoading ? (
                                         <div className="flex items-center justify-center h-[250px]">
                                             <div className="text-muted-foreground">Loading live data...</div>
                                         </div>
@@ -576,7 +583,7 @@ export default function AnalyticsPage() {
                                                     label={{ value: 'Pressure (hPa)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
                                                 />
                                                 <Tooltip />
-                                                <Line type="monotone" dataKey="pressure" stroke="#10b981" strokeWidth={2} name="Pressure (hPa)" />
+                                                <Line type="monotone" dataKey="pressure" stroke="#3b82f6" strokeWidth={2} name="Pressure (hPa)" />
                                             </LineChart>
                                         </ResponsiveContainer>
                                     )}
@@ -588,14 +595,18 @@ export default function AnalyticsPage() {
                                     <CardTitle>
                                         Humidity
                                         {processedData.humidityData.length > 0 && (
-                                            <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                                ({processedData.humidityData[processedData.humidityData.length - 1].humidity}%)
+                                            <span>
+                                                {' '}({processedData.humidityData[processedData.humidityData.length - 1].humidity}%)
                                             </span>
                                         )}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    {sensorLoading ? (
+                                    {!selectedNode ? (
+                                        <div className="flex items-center justify-center h-[250px]">
+                                            <div className="text-muted-foreground">Please select a node to view data</div>
+                                        </div>
+                                    ) : sensorLoading ? (
                                         <div className="flex items-center justify-center h-[250px]">
                                             <div className="text-muted-foreground">Loading live data...</div>
                                         </div>
@@ -613,7 +624,7 @@ export default function AnalyticsPage() {
                                                     label={{ value: 'Humidity (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
                                                 />
                                                 <Tooltip />
-                                                <Line type="monotone" dataKey="humidity" stroke="#f59e0b" strokeWidth={2} name="Humidity (%)" />
+                                                <Line type="monotone" dataKey="humidity" stroke="#3b82f6" strokeWidth={2} name="Humidity (%)" />
                                             </LineChart>
                                         </ResponsiveContainer>
                                     )}

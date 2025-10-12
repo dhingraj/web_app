@@ -5,10 +5,10 @@ export const revalidate = 0; // Disable caching
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Fetching environmental sensor data from AWS Lambda - cache cleared...');
+    console.log('Fetching frequency spectrum data from AWS Lambda - cache cleared...');
     console.log('API Version:', new Date().toISOString());
     
-    const response = await fetch(`https://9r7r71emo7.execute-api.us-east-1.amazonaws.com/dev?t=${Date.now()}`, {
+    const response = await fetch(`https://cm3jae5goa.execute-api.us-east-1.amazonaws.com/dev?t=${Date.now()}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -32,11 +32,37 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('Successfully fetched environmental sensor data');
+    console.log('Raw API response structure:', { statusCode: data.statusCode, bodyType: typeof data.body });
+    
+    // Parse the body string into JSON
+    let parsedBody;
+    if (typeof data.body === 'string') {
+      parsedBody = JSON.parse(data.body);
+    } else {
+      parsedBody = data.body;
+    }
+    
+    console.log('Parsed body structure:', Object.keys(parsedBody));
+    
+    // Extract the actual data array
+    // The API returns: { data: [...], max_return_rows: X, query_id: Y, rows_returned: Z }
+    let frequencyArray;
+    if (parsedBody.data && Array.isArray(parsedBody.data)) {
+      frequencyArray = parsedBody.data;
+      console.log('Successfully extracted frequency data:', frequencyArray.length, 'samples');
+    } else if (Array.isArray(parsedBody)) {
+      frequencyArray = parsedBody;
+      console.log('Body is already an array:', frequencyArray.length, 'samples');
+    } else {
+      throw new Error('Unexpected API response structure');
+    }
 
     const apiResponse = NextResponse.json({
       success: true,
-      data: data,
+      data: {
+        statusCode: data.statusCode,
+        body: frequencyArray // Return the array only
+      },
       status: response.status,
       headers: Object.fromEntries(response.headers.entries())
     });
@@ -52,7 +78,7 @@ export async function GET(request: NextRequest) {
     return apiResponse;
 
   } catch (error) {
-    console.error('Connection test failed:', error);
+    console.error('Frequency spectrum fetch failed:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -60,3 +86,4 @@ export async function GET(request: NextRequest) {
     });
   }
 }
+

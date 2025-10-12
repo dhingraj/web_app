@@ -12,20 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Label } from 'recharts';
 import { useAssetData, type AssetData } from "@/lib/contexts/AssetContext";
 import { useSensorData } from "@/lib/contexts/SensorDataContext";
-
-
-
-
-// Mock data for charts
-const frequencySpectrumData = [
-  { frequency: 0.1, vx: 0.2, vy: 0.15, vz: 0.18 },
-  { frequency: 0.5, vx: 0.8, vy: 0.6, vz: 0.7 },
-  { frequency: 1.0, vx: 1.2, vy: 1.0, vz: 1.1 },
-  { frequency: 2.0, vx: 0.9, vy: 0.8, vz: 0.85 },
-  { frequency: 5.0, vx: 0.4, vy: 0.3, vz: 0.35 },
-  { frequency: 10.0, vx: 0.1, vy: 0.08, vz: 0.09 },
-  { frequency: 20.0, vx: 0.05, vy: 0.04, vz: 0.045 },
-];
+import { useFrequencyData } from "@/lib/contexts/FrequencyDataContext";
 
 
 export default function AnalyticsPage() {
@@ -34,6 +21,7 @@ export default function AnalyticsPage() {
   const subplantFromUrl = searchParams.get('subplant');
   const { assetData, loading: assetLoading, error: assetError, refreshData: refreshAssetData } = useAssetData();
   const { sensorData, loading: sensorLoading, error: sensorError, lastUpdated, refreshData } = useSensorData();
+  const { frequencyData, loading: frequencyLoading, error: frequencyError, refreshData: refreshFrequencyData } = useFrequencyData();
   
   const [view, setView] = useState<"dashboard" | "report">("dashboard");
   const [selectedAxes, setSelectedAxes] = useState<{vx: boolean, vy: boolean, vz: boolean}>({vx: true, vy: true, vz: true});
@@ -156,12 +144,39 @@ export default function AnalyticsPage() {
   };
 
   const handleRefreshData = async () => {
-    // Refresh both sensor data and asset data
+    // Refresh all data sources
     await Promise.all([
       refreshData(), // Refresh sensor data
-      refreshAssetData() // Refresh asset data
+      refreshAssetData(), // Refresh asset data
+      refreshFrequencyData() // Refresh frequency spectrum data
     ]);
   };
+
+  // Process frequency spectrum data - filter by selected node
+  const processedFrequencyData = React.useMemo(() => {
+    if (!frequencyData.length) return [];
+    
+    // Filter by selected node
+    let filteredData = frequencyData;
+    if (selectedNode) {
+      filteredData = frequencyData.filter(item => item.node_id === selectedNode);
+    }
+    
+    if (!filteredData.length) return [];
+    
+    // The data comes with sample_index, so we can use that as frequency
+    // Sort by sample_index and return the data
+    const sortedData = filteredData
+      .sort((a, b) => a.sample_index - b.sample_index);
+    
+    return sortedData.map(item => ({
+      frequency: item.sample_index,
+      vx: item.vx,
+      vy: item.vy,
+      vz: item.vz,
+      amp: item.amp
+    }));
+  }, [frequencyData, selectedNode]);
 
   // Process live data for charts - filter by selected node
   const processedData = React.useMemo(() => {
@@ -261,8 +276,8 @@ export default function AnalyticsPage() {
                 </Select>
                 </div>
             <div className="flex items-end gap-2">
-              <Button onClick={handleRefreshData} disabled={sensorLoading || assetLoading}>
-                {(sensorLoading || assetLoading) ? "Loading..." : "Refresh Data"}
+              <Button onClick={handleRefreshData} disabled={sensorLoading || assetLoading || frequencyLoading}>
+                {(sensorLoading || assetLoading || frequencyLoading) ? "Loading..." : "Refresh Data"}
               </Button>
                   <Button variant="outline" onClick={() => setView(view === 'dashboard' ? 'report' : 'dashboard')}>
                     {view === 'dashboard' ? <Eye className="mr-2 h-4 w-4" /> : <LayoutDashboard className="mr-2 h-4 w-4" />}
@@ -435,20 +450,38 @@ export default function AnalyticsPage() {
                                     </button>
                                 </div>
                                 <div className="pb-4">
-                                    <ResponsiveContainer width="100%" height={350}>
-                                        <LineChart data={frequencySpectrumData}>
-                                        <XAxis 
-                                            dataKey="frequency" 
-                                        />
-                                        <YAxis 
-                                            label={{ value: 'Amplitude', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
-                                        />
-                                        <Tooltip />
-                                        {selectedAxes.vx && <Line type="monotone" dataKey="vx" stroke="#8884d8" strokeWidth={2} name="Vx" />}
-                                        {selectedAxes.vy && <Line type="monotone" dataKey="vy" stroke="#82ca9d" strokeWidth={2} name="Vy" />}
-                                        {selectedAxes.vz && <Line type="monotone" dataKey="vz" stroke="#ffc658" strokeWidth={2} name="Vz" />}
-                                    </LineChart>
-                                    </ResponsiveContainer>
+                                    {!selectedNode ? (
+                                        <div className="flex items-center justify-center h-[350px]">
+                                            <div className="text-muted-foreground">Please select a node to view data</div>
+                                        </div>
+                                    ) : frequencyLoading ? (
+                                        <div className="flex items-center justify-center h-[350px]">
+                                            <div className="text-muted-foreground">Loading frequency data...</div>
+                                        </div>
+                                    ) : frequencyError ? (
+                                        <div className="flex items-center justify-center h-[350px]">
+                                            <div className="text-red-500">{frequencyError}</div>
+                                        </div>
+                                    ) : processedFrequencyData.length === 0 ? (
+                                        <div className="flex items-center justify-center h-[350px]">
+                                            <div className="text-muted-foreground">No frequency data available for this node</div>
+                                        </div>
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height={350}>
+                                            <LineChart data={processedFrequencyData}>
+                                            <XAxis 
+                                                dataKey="frequency" 
+                                            />
+                                            <YAxis 
+                                                label={{ value: 'Amplitude', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+                                            />
+                                            <Tooltip />
+                                            {selectedAxes.vx && <Line type="monotone" dataKey="vx" stroke="#8884d8" strokeWidth={2} name="Vx" dot={false} />}
+                                            {selectedAxes.vy && <Line type="monotone" dataKey="vy" stroke="#82ca9d" strokeWidth={2} name="Vy" dot={false} />}
+                                            {selectedAxes.vz && <Line type="monotone" dataKey="vz" stroke="#ffc658" strokeWidth={2} name="Vz" dot={false} />}
+                                        </LineChart>
+                                        </ResponsiveContainer>
+                                    )}
                                     <div className="text-center text-sm text-muted-foreground mt-2">
                                         Frequency (Hz)
                                     </div>

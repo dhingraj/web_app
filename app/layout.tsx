@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import { AssetProvider } from "@/lib/contexts/AssetContext";
 import { SensorDataProvider } from "@/lib/contexts/SensorDataContext";
+import { FrequencyDataProvider } from "@/lib/contexts/FrequencyDataContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,7 +26,9 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <AssetProvider>
           <SensorDataProvider>
-            {children}
+            <FrequencyDataProvider>
+              {children}
+            </FrequencyDataProvider>
           </SensorDataProvider>
         </AssetProvider>
         <Toaster />

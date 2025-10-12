@@ -27,14 +27,27 @@ export function SensorDataProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  const fetchSensorData = async () => {
+  const fetchSensorData = async (forceRefresh = false) => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching sensor data via Next.js API...');
+      // Add more aggressive cache-busting for manual refresh
+      const timestamp = Date.now();
+      const random = Math.random();
+      const url = forceRefresh 
+        ? `/api/test-connection?t=${timestamp}&r=${random}&refresh=${timestamp}&force=1`
+        : `/api/test-connection?t=${timestamp}&r=${random}`;
       
-      const response = await fetch('/api/test-connection');
+      console.log('Fetching sensor data:', { url, forceRefresh, timestamp });
+      
+      const response = await fetch(url, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       console.log('Response status:', response.status);
       
       if (!response.ok) {
@@ -61,7 +74,8 @@ export function SensorDataProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshData = async () => {
-    await fetchSensorData();
+    console.log('Manual refresh triggered for sensor data');
+    await fetchSensorData(true); // Force refresh with aggressive cache-busting
   };
 
   useEffect(() => {
